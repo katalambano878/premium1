@@ -45,7 +45,8 @@ COPY --from=builder --chown=app:app /app/.next/static ./.next/static
 COPY --from=builder --chown=app:app /app/db ./db
 COPY --from=builder --chown=app:app /app/scripts/migrate.mjs ./scripts/migrate.mjs
 # Uploaded documents live on a persistent volume mounted here.
-RUN mkdir -p /app/storage && chown app:app /app/storage
+# Resized images are cached on a persistent volume so deploys do not throw them away.
+RUN mkdir -p /app/storage /app/.next/cache/images && chown app:app /app/storage /app/.next/cache /app/.next/cache/images
 USER app
 EXPOSE 3000
 CMD ["sh", "-c", "node scripts/migrate.mjs && exec node server.js"]
