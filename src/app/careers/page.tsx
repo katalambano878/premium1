@@ -40,7 +40,7 @@ export default function CareersPage() {
         title="Build logistics careers that mean something"
         description="We hire people who like fixing problems at borders, berths, and warehouses — not slide decks. If that is you, we want to talk."
         crumbs={[{ label: "Home", href: "/" }, { label: "Careers" }]}
-        backgroundImage="/hero/operations-desk.jpg"
+        backgroundImage="/hero/operations-desk.webp"
       />
 
       {/* Culture: text beside a photo card */}

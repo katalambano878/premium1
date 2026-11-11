@@ -11,13 +11,13 @@ const ALL = "All topics";
 /** Every post currently shares one placeholder image; rotate site photos so the grid is not seven copies of it. */
 const DEFAULT_IMAGE = "/insights-featured.webp";
 const CARD_IMAGES = [
-  "/hero/customs-gate.jpg",
+  "/hero/customs-gate.webp",
   "/hero-slide-2.webp",
-  "/hero/operations-desk.jpg",
+  "/hero/operations-desk.webp",
   "/services-hero.webp",
-  "/hero/ship-agency.jpg",
+  "/hero/ship-agency.webp",
   "/hero-slide-1.webp",
-  "/hero/freight-dawn.jpg",
+  "/hero/freight-dawn.webp",
 ];
 
 function formatDate(iso: string) {

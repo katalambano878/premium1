@@ -82,7 +82,7 @@ export default function ContactPage() {
         title="Speak with a logistics specialist"
         description={`Whether you have a live shipment, a tender, or a corridor you are exploring — we aim to respond within ${siteConfig.responseSlaHours} hours on business days and assign a named contact.`}
         crumbs={[{ label: "Home", href: "/" }, { label: "Contact" }]}
-        backgroundImage="/hero/freight-dawn.jpg"
+        backgroundImage="/hero/freight-dawn.webp"
       />
 
       {/* Form + contact details */}

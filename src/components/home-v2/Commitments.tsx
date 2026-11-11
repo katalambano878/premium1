@@ -29,7 +29,7 @@ export function Commitments() {
         >
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl lg:aspect-[5/6]">
             <Image
-              src="/hero/operations-desk.jpg"
+              src="/hero/operations-desk.webp"
               alt="A coordinator reviewing a shipment on screen"
               fill
               sizes="(min-width: 1024px) 48vw, 100vw"

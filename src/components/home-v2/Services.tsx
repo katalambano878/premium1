@@ -13,14 +13,14 @@ const services = [
     pitch: "We book the carrier, manage the documents and track your cargo by sea, air or road.",
     points: ["Full containers, part loads, air cargo", "A backup carrier for each route"],
     href: "/services/freight-forwarding",
-    image: "/service-freight.png",
+    image: "/service-freight.webp",
   },
   {
     title: "Customs clearance",
     pitch: "Classification, permits and duty estimates prepared before your cargo lands.",
     points: ["Tema and Takoradi ports", "Customs queries handled for you"],
     href: "/services/customs-clearance",
-    image: "/hero/customs-gate.jpg",
+    image: "/hero/customs-gate.webp",
   },
   {
     title: "Inland delivery",

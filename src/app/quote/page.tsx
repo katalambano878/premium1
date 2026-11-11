@@ -112,7 +112,7 @@ export default function QuotePage() {
         title="Request a quote"
         description="Four short steps (~3 minutes). The more complete your inputs, the faster we respond — with fewer clarification rounds."
         crumbs={[{ label: "Home", href: "/" }, { label: "Quote" }]}
-        backgroundImage="/hero/operations-desk.jpg"
+        backgroundImage="/hero/operations-desk.webp"
       />
 
       <section className="mx-auto grid max-w-[1320px] items-start gap-6 px-6 py-12 sm:py-16 lg:grid-cols-[1.25fr_0.75fr] lg:gap-8">

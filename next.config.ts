@@ -12,11 +12,22 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   images: {
-    unoptimized: true,
+    // Next resizes every photo to the size each screen needs and serves WebP.
+    formats: ["image/webp"],
     qualities: [75, 80, 82, 85, 90],
+    deviceSizes: [640, 828, 1080, 1280, 1600, 1920],
+    imageSizes: [64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // Files in /public keep their names between deploys; cache them for a week.
+        source: "/:file*.(webp|jpg|jpeg|png|svg|ico|woff2)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
+      },
+    ];
   },
   async redirects() {
     // One canonical host: www sends visitors to the bare domain.

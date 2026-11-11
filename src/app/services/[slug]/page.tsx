@@ -15,12 +15,12 @@ import { SERVICE_CASE_SNIPPETS } from "@/lib/richContent";
 const OVERVIEW_IMAGES: Record<string, string> = {
   "freight-forwarding": "/hero-slide-2.webp",
   "ship-agency": "/hero-slide-2.webp",
-  "import-export-handling": "/hero/customs-gate.jpg",
-  "customs-clearance": "/hero/customs-gate.jpg",
-  "warehousing-distribution": "/hero/operations-desk.jpg",
+  "import-export-handling": "/hero/customs-gate.webp",
+  "customs-clearance": "/hero/customs-gate.webp",
+  "warehousing-distribution": "/hero/operations-desk.webp",
   "inland-transportation-hauls": "/hero-slide-1.webp",
   "door-to-door-delivery": "/hero-slide-1.webp",
-  "supply-chain-support-solutions": "/hero/operations-desk.jpg",
+  "supply-chain-support-solutions": "/hero/operations-desk.webp",
 };
 
 const LABEL = "inline-flex rounded-full border border-slate-300 px-4 py-1.5 text-[13px] text-slate-600";

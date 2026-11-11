@@ -26,12 +26,12 @@ const modes = [
 ];
 
 const cards = [
-  { title: "Sea freight", sub: "Full and part containers", meta: "Tema · Takoradi", image: "/service-freight.png", href: "/services/freight-forwarding" },
-  { title: "Customs clearance", sub: "Permits and duty estimates", meta: "Ready before arrival", image: "/hero/customs-gate.jpg", href: "/services/customs-clearance" },
+  { title: "Sea freight", sub: "Full and part containers", meta: "Tema · Takoradi", image: "/service-freight.webp", href: "/services/freight-forwarding" },
+  { title: "Customs clearance", sub: "Permits and duty estimates", meta: "Ready before arrival", image: "/hero/customs-gate.webp", href: "/services/customs-clearance" },
   { title: "Inland delivery", sub: "Port to your warehouse", meta: "Across Ghana", image: "/hero-slide-1.webp", href: "/services/inland-transportation-hauls" },
   { title: "Air freight", sub: "Time-critical cargo", meta: "Through Accra", image: "/hero-slide-2.webp", href: "/services/freight-forwarding" },
-  { title: "Door to door", sub: "Supplier to your door", meta: "One quote", image: "/hero/ship-agency.jpg", href: "/services/door-to-door-delivery" },
-  { title: "Warehousing", sub: "Storage and distribution", meta: "Short or long term", image: "/hero/freight-dawn.jpg", href: "/services/warehousing-distribution" },
+  { title: "Door to door", sub: "Supplier to your door", meta: "One quote", image: "/hero/ship-agency.webp", href: "/services/door-to-door-delivery" },
+  { title: "Warehousing", sub: "Storage and distribution", meta: "Short or long term", image: "/hero/freight-dawn.webp", href: "/services/warehousing-distribution" },
 ];
 
 const slides = [
@@ -123,7 +123,7 @@ export function Hero() {
         <header className="flex items-center justify-between gap-4 px-5 pt-5 sm:px-8 sm:pt-7">
           <Link href="/" className="flex items-center gap-3">
             <span className="relative inline-flex h-11 w-11 overflow-hidden rounded-full bg-[var(--navy)]">
-              <Image src="/premium1-logo-tight.png" alt="" width={88} height={88} className="h-11 w-11 object-cover" priority />
+              <Image src="/premium1-logo-tight.webp" alt="" width={88} height={88} className="h-11 w-11 object-cover" priority />
             </span>
             <span className="whitespace-nowrap leading-tight">
               <span className="block text-lg font-semibold tracking-[-0.01em]">Premium 1</span>

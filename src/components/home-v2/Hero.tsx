@@ -24,7 +24,7 @@ export function Hero() {
   return (
     <section className="relative isolate flex min-h-[calc(100svh-5rem)] flex-col overflow-hidden bg-[var(--navy)] text-white lg:min-h-[820px]">
       <Image
-        src="/hero/freight-dawn.jpg"
+        src="/hero/freight-dawn.webp"
         alt="Container ship berthed at a port terminal at dawn"
         fill
         priority

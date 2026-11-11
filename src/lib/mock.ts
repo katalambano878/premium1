@@ -9,7 +9,7 @@ export const MOCK_SERVICES = [
       "End-to-end freight solutions by air, sea, and road across Ghana, West Africa, and international corridors.",
     icon: "Package",
     sort_order: 1,
-    image: "/service-freight.png",
+    image: "/service-freight.webp",
   },
   {
     id: "8",
@@ -19,7 +19,7 @@ export const MOCK_SERVICES = [
       "Full, husbandry, and protective agency for vessels at Ghanaian ports, plus meet-and-greet support and structured port briefings.",
     icon: "Anchor",
     sort_order: 2,
-    image: "/service-ship.png",
+    image: "/service-ship.webp",
   },
   {
     id: "2",
@@ -29,7 +29,7 @@ export const MOCK_SERVICES = [
       "Streamlined import and export documentation and coordination for seamless cross-border trade.",
     icon: "Ship",
     sort_order: 3,
-    image: "/service-import.png",
+    image: "/service-import.webp",
   },
   {
     id: "3",

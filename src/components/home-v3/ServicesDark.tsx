@@ -12,14 +12,14 @@ const services = [
     tags: ["Sea", "Air", "Road"],
     title: "Freight forwarding",
     body: "Carrier booking, documents and tracking for full containers, part loads and air cargo.",
-    image: "/service-freight.png",
+    image: "/service-freight.webp",
     href: "/services/freight-forwarding",
   },
   {
     tags: ["Tema", "Takoradi"],
     title: "Customs clearance",
     body: "Classification, permits and duty estimates prepared before your cargo lands.",
-    image: "/hero/customs-gate.jpg",
+    image: "/hero/customs-gate.webp",
     href: "/services/customs-clearance",
   },
   {

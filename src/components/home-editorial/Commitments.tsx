@@ -39,7 +39,7 @@ export function Commitments() {
           className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem] lg:aspect-auto lg:min-h-[620px]"
         >
           <Image
-            src="/hero/operations-desk.jpg"
+            src="/hero/operations-desk.webp"
             alt="A coordinator reviewing a shipment on screen"
             fill
             sizes="(min-width: 1024px) 48vw, 100vw"

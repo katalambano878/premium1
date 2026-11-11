@@ -141,7 +141,7 @@ export default function HowWeOperatePage() {
         title="How we operate — clear steps, accountable people"
         description="No black boxes. You always know where your shipment is, who is handling it, and what happens next — from first quote to signed POD."
         crumbs={[{ label: "Home", href: "/" }, { label: "How We Operate" }]}
-        backgroundImage="/hero/customs-gate.jpg"
+        backgroundImage="/hero/customs-gate.webp"
       />
 
       {/* Process: sticky heading beside four numbered step cards */}

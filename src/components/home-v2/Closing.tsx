@@ -20,7 +20,7 @@ export function Closing() {
 
   return (
     <section className="relative isolate overflow-hidden bg-[var(--navy)] py-20 text-white sm:py-28">
-      <Image src="/hero/ship-agency.jpg" alt="" fill sizes="100vw" className="-z-10 object-cover" />
+      <Image src="/hero/ship-agency.webp" alt="" fill sizes="100vw" className="-z-10 object-cover" />
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(11,31,58,0.96)_0%,rgba(11,31,58,0.88)_55%,rgba(11,31,58,0.7)_100%)]" />
 
       <div className="mx-auto grid max-w-[1440px] gap-12 px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-20">

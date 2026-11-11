@@ -71,7 +71,7 @@ export function LeadershipNote() {
             className="relative order-first aspect-[4/5] w-full overflow-hidden rounded-[1.75rem] lg:order-none lg:aspect-auto lg:min-h-[640px]"
           >
             <Image
-              src="/hero/leadership-team.jpg"
+              src="/hero/leadership-team.webp"
               alt="The Premium 1 leadership team at the Accra office"
               fill
               sizes="(min-width: 1024px) 38vw, 100vw"

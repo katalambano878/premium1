@@ -56,7 +56,7 @@ export function Footer() {
           <div className="lg:col-span-4">
             <Link href="/" className="inline-flex items-center gap-3">
               <span className="inline-flex h-11 w-11 overflow-hidden rounded-full bg-white/10">
-                <Image src="/premium1-logo-tight.png" alt="" width={88} height={88} className="h-11 w-11 object-cover" />
+                <Image src="/premium1-logo-tight.webp" alt="" width={88} height={88} className="h-11 w-11 object-cover" />
               </span>
               <span className="leading-tight">
                 <span className="block text-lg font-semibold tracking-[-0.01em]">Premium 1</span>

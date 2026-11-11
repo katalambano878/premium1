@@ -27,7 +27,7 @@ const slides: Slide[] = [
     description:
       "Freight forwarding, customs clearance and inland delivery for importing companies, from your supplier's door to your warehouse.",
     shortDescription: "Freight, customs clearance and delivery for importers, under one team.",
-    image: "/hero/freight-dawn.jpg",
+    image: "/hero/freight-dawn.webp",
     alt: "Container ship berthed at dawn with tugboats alongside",
     cta: {
       primary: { label: "Get a quote", href: "/quote" },
@@ -42,7 +42,7 @@ const slides: Slide[] = [
     description:
       "Classification, permits and duty estimates are prepared early, so your containers at Tema or Takoradi are not left waiting on paperwork.",
     shortDescription: "Permits and duty estimates prepared before your cargo lands.",
-    image: "/hero/customs-gate.jpg",
+    image: "/hero/customs-gate.webp",
     alt: "Clearance coordinator checking documents beside a container truck",
     cta: {
       primary: { label: "Get a clearance quote", href: "/quote" },
@@ -57,7 +57,7 @@ const slides: Slide[] = [
     description:
       "We book the carrier, manage the documents and arrange the truck, so you deal with one company instead of four.",
     shortDescription: "Carrier, documents and trucking arranged by one company.",
-    image: "/hero/ship-agency.jpg",
+    image: "/hero/ship-agency.webp",
     alt: "Cargo vessel alongside the quay",
     cta: {
       primary: { label: "Get a freight quote", href: "/quote" },
@@ -72,7 +72,7 @@ const slides: Slide[] = [
     description:
       "You get a named person, a written quote with every cost listed, and an update at each stage until the goods are delivered.",
     shortDescription: "A named contact, a written quote and updates at every stage.",
-    image: "/hero/operations-desk.jpg",
+    image: "/hero/operations-desk.webp",
     alt: "Operations coordinator reviewing a shipment on screen",
     cta: {
       primary: { label: "Get a quote", href: "/quote" },

@@ -16,18 +16,18 @@ export const SERVICE_ICONS: Record<string, LucideIcon> = {
 
 /** Photos cleared for use on service pages. */
 const ALLOWED_SERVICE_IMAGES = new Set([
-  "/service-freight.png",
-  "/hero/customs-gate.jpg",
+  "/service-freight.webp",
+  "/hero/customs-gate.webp",
   "/hero-slide-1.webp",
   "/hero-slide-2.webp",
   "/services-hero.webp",
-  "/hero/freight-dawn.jpg",
-  "/hero/ship-agency.jpg",
-  "/hero/operations-desk.jpg",
+  "/hero/freight-dawn.webp",
+  "/hero/ship-agency.webp",
+  "/hero/operations-desk.webp",
 ]);
 
 const SERVICE_IMAGE_FALLBACK: Record<string, string> = {
-  "ship-agency": "/hero/ship-agency.jpg",
+  "ship-agency": "/hero/ship-agency.webp",
   "import-export-handling": "/hero-slide-2.webp",
 };
 

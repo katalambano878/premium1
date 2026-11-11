@@ -23,6 +23,7 @@
     "recharts": "^3.8.1",
     "resend": "^6.9.3",
     "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0"
   },
@@ -42,6 +43,8 @@
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.1",
     "@tailwindcss/oxide-linux-x64-musl": "4.2.1",
     "lightningcss-linux-x64-gnu": "1.31.1",
-    "lightningcss-linux-x64-musl": "1.31.1"
+    "lightningcss-linux-x64-musl": "1.31.1",
+    "@img/sharp-linuxmusl-x64": "0.35.5",
+    "@img/sharp-libvips-linuxmusl-x64": "1.3.4"
   }
 }

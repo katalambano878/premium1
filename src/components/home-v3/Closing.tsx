@@ -15,7 +15,7 @@ export function Closing() {
   return (
     <section className="px-3 pb-6 pt-6 sm:px-5">
       <div className="relative isolate mx-auto grid max-w-[1480px] gap-10 overflow-hidden rounded-[1.75rem] bg-[var(--navy)] px-5 py-12 text-white sm:rounded-[2rem] sm:px-10 sm:py-16 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:gap-16 lg:px-14 lg:py-20">
-        <Image src="/hero/freight-dawn.jpg" alt="" fill sizes="100vw" className="-z-10 object-cover" />
+        <Image src="/hero/freight-dawn.webp" alt="" fill sizes="100vw" className="-z-10 object-cover" />
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,20,40,0.88)_0%,rgba(8,20,40,0.6)_60%,rgba(8,20,40,0.45)_100%)]" />
 
         <div>

@@ -100,7 +100,7 @@ export default function TrackPage() {
         title="Track your shipment"
         description="We are rolling out a secure client area for active account holders. Until your login is provisioned, you get the same milestones through email and WhatsApp with full audit trails."
         crumbs={[{ label: "Home", href: "/" }, { label: "Track" }]}
-        backgroundImage="/hero/customs-gate.jpg"
+        backgroundImage="/hero/customs-gate.webp"
       />
 
       {/* Lookup */}
