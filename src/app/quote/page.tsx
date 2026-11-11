@@ -2,22 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Container } from "@/components/design-system/Container";
 import { PageHero } from "@/components/page/PageHero";
-import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
 import { SITE_SETTINGS } from "@/lib/mock";
-import {
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  MapPin,
-  MessageCircle,
-  Package,
-  Send,
-  Ship,
-  User,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, MapPin, MessageCircle, Package, Ship, User } from "lucide-react";
 
 const STEPS = [
   { id: "origin", title: "Route", icon: MapPin, subtitle: "Origin & destination" },
@@ -26,10 +13,27 @@ const STEPS = [
   { id: "docs", title: "Contact", icon: User, subtitle: "Your details" },
 ];
 
+const haveReady = [
+  { title: "Route", body: "Where the cargo ships from and where it is going." },
+  { title: "Cargo", body: "Type, dimensions, weight and quantity, if you know them." },
+  { title: "Method and timeline", body: "Sea, air or road, plus any special requirements." },
+  { title: "Your contact details", body: "Name, email and phone so we can reply." },
+];
+
+const nextSteps = [
+  "Operations reviews your lane, commodity, and mode.",
+  "We email a written quote or ask targeted follow-ups.",
+  "On acceptance, you receive a shipment reference and checklist.",
+];
+
+const fieldClass =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-[var(--navy)] placeholder:text-slate-400 transition-colors duration-200 focus:border-[var(--navy)] focus:outline-none";
+const labelClass = "mb-2 block text-sm font-medium text-[var(--navy)]";
+
 const benefits = [
   "Line-item quotations where applicable",
   "Named operations contact on confirmation",
-  "24–48h response on complete enquiries",
+  "24-hour response on complete enquiries",
   "Corridor experience: Ghana & ECOWAS",
 ];
 
@@ -99,344 +103,348 @@ export default function QuotePage() {
   };
 
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
+  const current = STEPS[step];
 
   return (
     <>
       <PageHero
         eyebrow="Quote request"
-        title="Request a structured quotation"
+        title="Request a quote"
         description="Four short steps (~3 minutes). The more complete your inputs, the faster we respond — with fewer clarification rounds."
         crumbs={[{ label: "Home", href: "/" }, { label: "Quote" }]}
-        backgroundImage="/hero-logistics.webp"
+        backgroundImage="/hero/operations-desk.jpg"
       />
 
-      <section className="relative py-20 md:py-28 bg-[var(--surface-warm)]">
-        <Container>
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-            
-            {/* Form Column */}
-            <div className="lg:col-span-8 order-2 lg:order-1">
-              <AnimateOnScroll animation="slide-right">
-                <div className="rounded-3xl bg-white border border-slate-200/80 shadow-2xl shadow-slate-900/5 overflow-hidden">
-                  
-                  {/* Progress Header */}
-                  <div className="p-6 md:p-8 border-b border-slate-100 bg-slate-50 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-200">
-                      <div
-                        className="h-full bg-[var(--accent)] transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
+      <section className="mx-auto grid max-w-[1320px] items-start gap-6 px-6 py-12 sm:py-16 lg:grid-cols-[1.25fr_0.75fr] lg:gap-8">
+        {/* Form */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 lg:p-10">
+          {/* Step navigation */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {STEPS.map((s, i) => {
+              const active = i === step;
+              const done = i < step;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setStep(i)}
+                  aria-current={active ? "step" : undefined}
+                  className={`flex min-h-12 min-w-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[background-color,color,border-color] duration-200 ${
+                    active
+                      ? "border-[var(--navy)] bg-[var(--navy)] text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-[var(--navy)]"
+                  }`}
+                >
+                  <span className={`shrink-0 text-sm tabular-nums ${active ? "text-white/75" : done ? "text-[var(--accent-ink)]" : "text-slate-400"}`}>
+                    {done ? <Check className="h-4 w-4" strokeWidth={2} aria-label="Done" /> : `0${i + 1}`}
+                  </span>
+                  <span className="truncate text-sm font-medium">{s.title}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-200" aria-hidden>
+            <div
+              className="h-full w-full origin-left rounded-full bg-[var(--accent)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ transform: `scaleX(${progress / 100})` }}
+            />
+          </div>
+
+          <form onSubmit={handleSubmit} className="relative mt-8">
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden
+              className="absolute opacity-0 w-px h-px overflow-hidden"
+              value={trap}
+              onChange={(e) => setTrap(e.target.value)}
+            />
+
+            <p className="text-sm tabular-nums text-slate-500">
+              Step {step + 1} of {STEPS.length}
+            </p>
+            <h2 className="mt-1 text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">{current.subtitle}</h2>
+
+            <div className="mt-6">
+              {step === 0 && (
+                <div className="grid gap-5 animate-fade-up sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="quote-origin" className={labelClass}>
+                      Origin
+                    </label>
+                    <input
+                      id="quote-origin"
+                      type="text"
+                      value={form.origin}
+                      onChange={(e) => update("origin", e.target.value)}
+                      className={fieldClass}
+                      placeholder="City, port, or full address"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="quote-destination" className={labelClass}>
+                      Destination
+                    </label>
+                    <input
+                      id="quote-destination"
+                      type="text"
+                      value={form.destination}
+                      onChange={(e) => update("destination", e.target.value)}
+                      className={fieldClass}
+                      placeholder="Delivery point or port"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {step === 1 && (
+                <div className="grid gap-5 animate-fade-up sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label htmlFor="quote-cargo-type" className={labelClass}>
+                      Cargo type
+                    </label>
+                    <input
+                      id="quote-cargo-type"
+                      type="text"
+                      value={form.cargo_type}
+                      onChange={(e) => update("cargo_type", e.target.value)}
+                      className={fieldClass}
+                      placeholder="e.g. General cargo, machinery, chemicals"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="quote-dimensions" className={labelClass}>
+                      Dimensions (L×W×H cm)
+                    </label>
+                    <input
+                      id="quote-dimensions"
+                      type="text"
+                      value={form.dimensions}
+                      onChange={(e) => update("dimensions", e.target.value)}
+                      className={fieldClass}
+                      placeholder="e.g. 120x80x100"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="quote-weight" className={labelClass}>
+                      Weight (kg)
+                    </label>
+                    <input
+                      id="quote-weight"
+                      type="text"
+                      value={form.weight}
+                      onChange={(e) => update("weight", e.target.value)}
+                      className={fieldClass}
+                      placeholder="e.g. 1500"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="quote-quantity" className={labelClass}>
+                      Quantity
+                    </label>
+                    <input
+                      id="quote-quantity"
+                      type="text"
+                      value={form.quantity}
+                      onChange={(e) => update("quantity", e.target.value)}
+                      className={fieldClass}
+                      placeholder="Packages, pallets, or TEU"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-5 animate-fade-up">
+                  <fieldset>
+                    <legend className={labelClass}>Shipping method</legend>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      {(["sea", "air", "road"] as const).map((m) => (
+                        <label
+                          key={m}
+                          className={`flex min-h-12 cursor-pointer items-center justify-center rounded-2xl border px-4 py-3 text-base font-medium capitalize transition-[background-color,color,border-color] duration-200 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--accent-ink)] ${
+                            form.method === m
+                              ? "border-[var(--navy)] bg-[var(--navy)] text-white"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-[var(--navy)]"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="method"
+                            value={m}
+                            checked={form.method === m}
+                            onChange={() => update("method", m)}
+                            className="sr-only"
+                          />
+                          {m}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div>
+                    <label htmlFor="quote-requirements" className={labelClass}>
+                      Requirements & timeline
+                    </label>
+                    <textarea
+                      id="quote-requirements"
+                      value={form.requirements}
+                      onChange={(e) => update("requirements", e.target.value)}
+                      className={`${fieldClass} min-h-[140px] resize-y`}
+                      placeholder="Incoterms, target ETA, special handling, permits…"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-5 animate-fade-up">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="quote-name" className={labelClass}>
+                        Full name *
+                      </label>
+                      <input
+                        id="quote-name"
+                        type="text"
+                        value={form.name}
+                        onChange={(e) => update("name", e.target.value)}
+                        className={fieldClass}
+                        required
                       />
                     </div>
-                    <div className="flex flex-wrap gap-2 md:gap-4 mt-2">
-                      {STEPS.map((s, i) => {
-                        const Icon = s.icon;
-                        const active = i === step;
-                        const done = i < step;
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setStep(i)}
-                            className={`flex items-center gap-3 rounded-2xl px-3.5 sm:px-4 py-3 text-left transition-all min-w-0 basis-[calc(50%-0.25rem)] sm:basis-auto sm:min-w-[140px] ${
-                              active
-                                ? "bg-[var(--navy)] text-white shadow-lg shadow-[var(--navy)]/20"
-                                : done
-                                  ? "bg-[var(--accent-soft)] text-[var(--ink)] border border-[var(--accent)]/20"
-                                  : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-[var(--ink)]"
-                            }`}
-                          >
-                            <span
-                              className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-                                active ? "bg-white/15 text-[var(--accent)]" : done ? "bg-[var(--accent)] text-white" : "bg-slate-100 text-slate-400"
-                              }`}
-                            >
-                              {done && !active ? <CheckCircle2 size={20} /> : <Icon size={20} />}
-                            </span>
-                            <span className="min-w-0">
-                              <span className={`block text-xs font-bold uppercase tracking-wider mb-0.5 ${active ? 'text-white/60' : 'opacity-60'}`}>
-                                Step {i + 1}
-                              </span>
-                              <span className="block font-display font-bold truncate">{s.title}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div>
+                      <label htmlFor="quote-company" className={labelClass}>
+                        Company
+                      </label>
+                      <input
+                        id="quote-company"
+                        type="text"
+                        value={form.company}
+                        onChange={(e) => update("company", e.target.value)}
+                        className={fieldClass}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="quote-email" className={labelClass}>
+                        Email *
+                      </label>
+                      <input
+                        id="quote-email"
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => update("email", e.target.value)}
+                        className={fieldClass}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="quote-phone" className={labelClass}>
+                        Phone *
+                      </label>
+                      <input
+                        id="quote-phone"
+                        type="tel"
+                        value={form.phone}
+                        onChange={(e) => update("phone", e.target.value)}
+                        className={fieldClass}
+                        required
+                      />
                     </div>
                   </div>
-
-                  {/* Form Body */}
-                  <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-6">
-                    <input
-                      type="text"
-                      name="website"
-                      tabIndex={-1}
-                      autoComplete="off"
-                      aria-hidden
-                      className="absolute opacity-0 w-px h-px overflow-hidden"
-                      value={trap}
-                      onChange={(e) => setTrap(e.target.value)}
-                    />
-                    
-                    {step === 0 && (
-                      <div className="space-y-6 animate-fade-up">
-                        <div>
-                          <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Origin</label>
-                          <input
-                            type="text"
-                            value={form.origin}
-                            onChange={(e) => update("origin", e.target.value)}
-                            className="input-premium"
-                            placeholder="City, port, or full address"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Destination</label>
-                          <input
-                            type="text"
-                            value={form.destination}
-                            onChange={(e) => update("destination", e.target.value)}
-                            className="input-premium"
-                            placeholder="Delivery point or port"
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {step === 1 && (
-                      <div className="space-y-6 animate-fade-up">
-                        <div>
-                          <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Cargo type</label>
-                          <input
-                            type="text"
-                            value={form.cargo_type}
-                            onChange={(e) => update("cargo_type", e.target.value)}
-                            className="input-premium"
-                            placeholder="e.g. General cargo, machinery, chemicals"
-                          />
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-6">
-                          <div>
-                            <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Dimensions (L×W×H cm)</label>
-                            <input
-                              type="text"
-                              value={form.dimensions}
-                              onChange={(e) => update("dimensions", e.target.value)}
-                              className="input-premium"
-                              placeholder="e.g. 120x80x100"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Weight (kg)</label>
-                            <input
-                              type="text"
-                              value={form.weight}
-                              onChange={(e) => update("weight", e.target.value)}
-                              className="input-premium"
-                              placeholder="e.g. 1500"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Quantity</label>
-                          <input
-                            type="text"
-                            value={form.quantity}
-                            onChange={(e) => update("quantity", e.target.value)}
-                            className="input-premium"
-                            placeholder="Packages, pallets, or TEU"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {step === 2 && (
-                      <div className="space-y-6 animate-fade-up">
-                        <div>
-                          <label className="block text-sm font-semibold text-[var(--ink)] mb-3">Shipping method</label>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {(["sea", "air", "road"] as const).map((m) => (
-                              <label
-                                key={m}
-                                className={`cursor-pointer rounded-2xl border-2 px-4 py-5 text-center transition-all ${
-                                  form.method === m
-                                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-md"
-                                    : "border-slate-200 hover:border-[var(--accent)]/40 hover:bg-slate-50 text-slate-500"
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="method"
-                                  value={m}
-                                  checked={form.method === m}
-                                  onChange={() => update("method", m)}
-                                  className="sr-only"
-                                />
-                                <span className={`block font-display font-bold text-lg capitalize ${form.method === m ? 'text-[var(--ink)]' : ''}`}>
-                                  {m}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-[var(--ink)] mb-2">
-                            Requirements & timeline
-                          </label>
-                          <textarea
-                            value={form.requirements}
-                            onChange={(e) => update("requirements", e.target.value)}
-                            className="input-premium min-h-[140px] resize-y"
-                            placeholder="Incoterms, target ETA, special handling, permits…"
-                            rows={4}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {step === 3 && (
-                      <div className="space-y-6 animate-fade-up">
-                        <div className="grid sm:grid-cols-2 gap-6">
-                          <div className="sm:col-span-2">
-                            <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Full name *</label>
-                            <input
-                              type="text"
-                              value={form.name}
-                              onChange={(e) => update("name", e.target.value)}
-                              className="input-premium"
-                              required
-                            />
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Company</label>
-                            <input
-                              type="text"
-                              value={form.company}
-                              onChange={(e) => update("company", e.target.value)}
-                              className="input-premium"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Email *</label>
-                            <input
-                              type="email"
-                              value={form.email}
-                              onChange={(e) => update("email", e.target.value)}
-                              className="input-premium"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-[var(--ink)] mb-2">Phone *</label>
-                            <input
-                              type="tel"
-                              value={form.phone}
-                              onChange={(e) => update("phone", e.target.value)}
-                              className="input-premium"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex gap-3 text-sm text-slate-600">
-                          <Send size={18} className="text-[var(--accent)] flex-shrink-0" />
-                          <p>
-                            Document upload can be enabled when your storage buckets are connected. For now, attach
-                            files via follow-up email or WhatsApp after submission.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-8 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={prev}
-                        disabled={step === 0}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-0 disabled:pointer-events-none transition-all"
-                      >
-                        <ChevronLeft size={20} /> Back
-                      </button>
-                      
-                      {step < STEPS.length - 1 ? (
-                        <button
-                          type="button"
-                          onClick={next}
-                          className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold bg-[var(--navy)] text-white hover:bg-slate-800 transition-all btn-hover-lift shadow-lg shadow-slate-900/20"
-                        >
-                          Continue to {STEPS[step + 1].title} <ChevronRight size={20} />
-                        </button>
-                      ) : (
-                        <button
-                          type="submit"
-                          disabled={submitting}
-                          className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-all btn-hover-lift shadow-lg shadow-[var(--accent)]/30 disabled:opacity-60"
-                        >
-                          <Send size={20} />
-                          {submitting ? "Submitting…" : "Submit quote request"}
-                        </button>
-                      )}
-                    </div>
-                  </form>
+                  <p className="text-sm leading-6 text-slate-500">
+                    Have documents to share? Send them by follow-up email or WhatsApp after you submit.
+                  </p>
                 </div>
-              </AnimateOnScroll>
+              )}
             </div>
 
-            {/* Sidebar Column */}
-            <aside className="lg:col-span-4 space-y-6 order-1 lg:order-2 lg:sticky lg:top-32">
-              <AnimateOnScroll animation="slide-left" delay={100}>
-                <div className="rounded-3xl bg-[var(--navy)] text-white p-8 md:p-10 relative overflow-hidden shadow-2xl">
-                  <div className="absolute inset-0 hero-grid opacity-10" aria-hidden />
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/20 rounded-full blur-[40px] pointer-events-none" aria-hidden />
-                  
-                  <FileText className="relative text-[var(--accent)] mb-6" size={32} />
-                  <h2 className="font-display font-bold text-2xl relative mb-6">What happens next</h2>
-                  
-                  <ol className="space-y-5 relative text-sm text-white/80">
-                    <li className="flex gap-4 items-start">
-                      <span className="w-6 h-6 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 shadow-sm">1</span>
-                      <span className="leading-relaxed text-base">Operations reviews your lane, commodity, and mode.</span>
-                    </li>
-                    <li className="flex gap-4 items-start">
-                      <span className="w-6 h-6 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 shadow-sm">2</span>
-                      <span className="leading-relaxed text-base">We email a written quote or ask targeted follow-ups.</span>
-                    </li>
-                    <li className="flex gap-4 items-start">
-                      <span className="w-6 h-6 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 shadow-sm">3</span>
-                      <span className="leading-relaxed text-base">On acceptance, you receive a file reference and checklist.</span>
-                    </li>
-                  </ol>
-                </div>
-              </AnimateOnScroll>
+            <div className="mt-8 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={prev}
+                disabled={step === 0}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white py-3 pl-5 pr-6 text-base font-medium text-[var(--navy)] transition-[background-color,color,border-color,transform] duration-200 hover:border-[var(--navy)] hover:bg-[var(--navy)] hover:text-white active:scale-[0.97] disabled:pointer-events-none disabled:opacity-0"
+              >
+                <ArrowLeft className="h-5 w-5" /> Back
+              </button>
 
-              <AnimateOnScroll animation="slide-left" delay={200}>
-                <div className="rounded-3xl bg-white border border-slate-200/80 p-8 shadow-lg shadow-slate-900/5">
-                  <h3 className="font-display font-bold text-xl text-[var(--ink)] mb-6">You will get</h3>
-                  <ul className="space-y-4 mb-8">
-                    {benefits.map((b) => (
-                      <li key={b} className="flex gap-3 text-slate-600">
-                        <CheckCircle2 className="text-[var(--accent)] flex-shrink-0 w-5 h-5 mt-0.5" />
-                        <span className="leading-relaxed">{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="pt-6 border-t border-slate-100">
-                    <a
-                      href={SITE_SETTINGS.social.whatsapp}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#25D366]/10 text-[#128C7E] font-bold hover:bg-[#25D366]/20 transition-colors"
-                    >
-                      <MessageCircle size={20} />
-                      WhatsApp us instead
-                    </a>
-                  </div>
-                </div>
-              </AnimateOnScroll>
-            </aside>
-            
+              {step < STEPS.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={next}
+                  className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--navy)] py-3 pl-6 pr-5 text-base font-medium text-white transition-[background-color,color,transform] duration-200 hover:bg-[var(--accent)] hover:text-[var(--navy)] active:scale-[0.97]"
+                >
+                  Continue to {STEPS[step + 1].title}
+                  <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--navy)] py-3 pl-6 pr-5 text-base font-medium text-white transition-[background-color,color,transform] duration-200 hover:bg-[var(--accent)] hover:text-[var(--navy)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+                >
+                  {submitting ? "Submitting…" : "Submit quote request"}
+                  <ArrowUpRight className="h-5 w-5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* Side panel */}
+        <aside className="space-y-6 lg:sticky lg:top-28">
+          <div className="rounded-3xl bg-[var(--navy)] p-6 text-white sm:p-8">
+            <h2 className="text-xl font-medium tracking-[-0.01em]">Have these ready</h2>
+            <ol className="mt-5 space-y-5">
+              {haveReady.map((item, i) => (
+                <li key={item.title} className="flex gap-4">
+                  <span className="text-base tabular-nums text-white/70">0{i + 1}</span>
+                  <span>
+                    <span className="block text-base font-medium">{item.title}</span>
+                    <span className="block text-sm leading-6 text-white/75">{item.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
           </div>
-        </Container>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+            <h2 className="text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">What happens next</h2>
+            <ol className="mt-3">
+              {nextSteps.map((item, i) => (
+                <li key={item} className="grid grid-cols-[2.25rem_1fr] items-baseline gap-2 border-t border-slate-200 py-4 first:border-t-0">
+                  <span className="text-base tabular-nums text-slate-400">0{i + 1}</span>
+                  <span className="text-base leading-7 text-slate-600">{item}</span>
+                </li>
+              ))}
+            </ol>
+
+            <h2 className="mt-6 border-t border-slate-200 pt-6 text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">You will get</h2>
+            <ul className="mt-4 space-y-3">
+              {benefits.map((b) => (
+                <li key={b} className="flex gap-3 text-base leading-7 text-slate-600">
+                  <Check className="mt-1.5 h-4 w-4 shrink-0 text-[var(--accent-ink)]" strokeWidth={2} />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+
+            <a
+              href={SITE_SETTINGS.social.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-medium text-[var(--navy)] transition-[background-color,color,border-color,transform] duration-200 hover:border-[var(--navy)] hover:bg-[var(--navy)] hover:text-white active:scale-[0.97]"
+            >
+              <MessageCircle className="h-5 w-5" strokeWidth={1.6} />
+              WhatsApp us instead
+            </a>
+          </div>
+        </aside>
       </section>
     </>
   );

@@ -1,168 +1,149 @@
-import Link from "next/link";
 import Image from "next/image";
-import { Container } from "@/components/design-system/Container";
+import Link from "next/link";
+import { ArrowUpRight, Facebook, Instagram, Linkedin, Mail, MapPin, Phone } from "lucide-react";
 import { SITE_SETTINGS } from "@/lib/mock";
-import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone } from "lucide-react";
 
-const companyLinks = [
-  { href: "/about", label: "About Us" },
-  { href: "/how-we-operate", label: "How We Operate" },
-  { href: "/careers", label: "Careers" },
-  { href: "/contact", label: "Contact" },
-  { href: "/insights", label: "Insights & News" },
+const navColumns = [
+  {
+    heading: "Company",
+    links: [
+      { href: "/about", label: "About us" },
+      { href: "/how-we-operate", label: "How we work" },
+      { href: "/coverage", label: "Coverage" },
+      { href: "/insights", label: "Guides" },
+      { href: "/careers", label: "Careers" },
+    ],
+  },
+  {
+    heading: "Services",
+    links: [
+      { href: "/services/freight-forwarding", label: "Freight forwarding" },
+      { href: "/services/customs-clearance", label: "Customs clearance" },
+      { href: "/services/inland-transportation-hauls", label: "Inland delivery" },
+      { href: "/services", label: "All services" },
+    ],
+  },
+  {
+    heading: "Support",
+    links: [
+      { href: "/quote", label: "Get a quote" },
+      { href: "/track", label: "Track a shipment" },
+      { href: "/contact", label: "Contact" },
+      { href: "/testimonials", label: "Testimonials" },
+    ],
+  },
 ];
 
-const resourceLinks = [
-  { href: "/track", label: "Track Shipment" },
-  { href: "/quote", label: "Request a Quote" },
-  { href: "/coverage", label: "Coverage Area" },
-  { href: "/testimonials", label: "Client Success" },
+const legalLinks = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/cookies", label: "Cookies" },
 ];
 
-const serviceLinks = [
-  { href: "/services/freight-forwarding", label: "Freight Forwarding" },
-  { href: "/services/ship-agency", label: "Ship Agency" },
-  { href: "/services/customs-clearance", label: "Customs Clearance" },
-  { href: "/services/warehousing-distribution", label: "Warehousing" },
-  { href: "/services/door-to-door-delivery", label: "Door-to-Door" },
-  { href: "/services", label: "View All Services" },
-];
-
-const legal = [
-  { href: "/privacy", label: "Privacy Policy" },
-  { href: "/terms", label: "Terms of Service" },
-  { href: "/cookies", label: "Cookie Policy" },
+const socialLinks = [
+  { href: SITE_SETTINGS.social.instagram, label: "Instagram", icon: Instagram },
+  { href: SITE_SETTINGS.social.facebook, label: "Facebook", icon: Facebook },
+  { href: SITE_SETTINGS.social.linkedin, label: "LinkedIn", icon: Linkedin },
 ];
 
 export function Footer() {
-  return (
-    <footer className="relative bg-[var(--navy)] text-slate-300 overflow-hidden border-t border-white/5">
-      {/* Decorative Background Elements */}
-      <div
-        className="absolute inset-0 opacity-[0.03] hero-grid pointer-events-none"
-        style={{ backgroundSize: "64px 64px" }}
-        aria-hidden
-      />
-      <div className="absolute top-0 right-0 w-[420px] h-[420px] md:w-[600px] md:h-[600px] rounded-full bg-[var(--accent)]/5 blur-[120px] md:blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[340px] h-[340px] md:w-[500px] md:h-[500px] rounded-full bg-white/5 blur-[100px] md:blur-[120px] pointer-events-none" />
+  const year = new Date().getFullYear();
 
-      <Container className="relative z-10">
-        {/* Main Footer Content */}
-        <div className="pt-14 md:pt-16 pb-10 md:pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 md:gap-12 lg:gap-8">
-          
-          {/* Brand Column */}
-          <div className="lg:col-span-4 pr-0 lg:pr-4">
-            <Link href="/" className="inline-flex items-center mb-6">
-              <Image
-                src="/premium1-logo.png"
-                alt="Premium 1 Logistics LTD"
-                width={623}
-                height={569}
-                className="h-14 w-auto md:h-20"
-              />
+  return (
+    <footer className="px-3 pb-3 pt-6 sm:px-5 sm:pb-5">
+      <div className="mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-6 text-white sm:rounded-[2rem] sm:px-10 lg:px-14">
+        <div className="grid gap-12 py-12 sm:py-16 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-4">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <span className="inline-flex h-11 w-11 overflow-hidden rounded-full bg-white/10">
+                <Image src="/premium1-logo-tight.png" alt="" width={88} height={88} className="h-11 w-11 object-cover" />
+              </span>
+              <span className="leading-tight">
+                <span className="block text-lg font-semibold tracking-[-0.01em]">Premium 1</span>
+                <span className="block text-[11px] tracking-[0.16em] text-white/70">LOGISTICS</span>
+              </span>
             </Link>
-            <p className="text-slate-400 leading-relaxed mb-8 max-w-md">
-              {SITE_SETTINGS.tagline} End-to-end freight, clearance, and distribution tailored for serious shippers.
+            <p className="mt-6 max-w-sm text-base leading-7 text-white/70">
+              Freight forwarding, customs clearance and inland delivery for companies importing into Ghana.
             </p>
-            
-            {/* Contact Info */}
-            <ul className="space-y-4 text-sm mb-8">
-              <li className="flex items-center gap-3 text-slate-300">
-                <Phone size={18} className="text-[var(--accent)]" />
-                <a href={`tel:${SITE_SETTINGS.phone}`} className="hover:text-white transition-colors">
+            <Link
+              href="/quote"
+              className="group mt-7 inline-flex items-center gap-2 rounded-full bg-white py-3 pl-6 pr-5 text-sm font-medium text-[var(--navy)] transition-[background-color,transform] duration-200 hover:bg-[var(--accent)] active:scale-[0.97]"
+            >
+              Get a quote
+              <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-5">
+            {navColumns.map((col) => (
+              <div key={col.heading}>
+                <h4 className="text-sm text-white/55">{col.heading}</h4>
+                <ul className="mt-4 space-y-3 text-[15px] text-white/90">
+                  {col.links.map((item) => (
+                    <li key={item.href + item.label}>
+                      <Link href={item.href} className="transition-colors hover:text-[var(--accent)]">
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="lg:col-span-3">
+            <h4 className="text-sm text-white/55">Contact</h4>
+            <ul className="mt-4 space-y-4 text-[15px] text-white/90">
+              <li className="flex items-start gap-3">
+                <MapPin className="mt-1 h-4 w-4 shrink-0 text-[var(--accent)]" />
+                <span className="leading-6">{SITE_SETTINGS.address}</span>
+              </li>
+              <li>
+                <a href={`tel:${SITE_SETTINGS.phone.replace(/[^+\d]/g, "")}`} className="flex items-center gap-3 transition-colors hover:text-[var(--accent)]">
+                  <Phone className="h-4 w-4 shrink-0 text-[var(--accent)]" />
                   {SITE_SETTINGS.phone}
                 </a>
               </li>
-              <li className="flex items-center gap-3 text-slate-300">
-                <Mail size={18} className="text-[var(--accent)] flex-shrink-0" />
-                <span className="flex flex-col gap-1">
-                  <a href={`mailto:${SITE_SETTINGS.email}`} className="hover:text-white transition-colors">
-                    {SITE_SETTINGS.email}
-                  </a>
-                  <a href={`mailto:${SITE_SETTINGS.operationsEmail}`} className="hover:text-white transition-colors">
-                    {SITE_SETTINGS.operationsEmail}
-                  </a>
-                </span>
-              </li>
-              <li className="flex items-start gap-3 text-slate-300">
-                <MapPin size={18} className="text-[var(--accent)] flex-shrink-0 mt-1" />
-                <span className="max-w-[260px]">{SITE_SETTINGS.address}</span>
+              <li>
+                <a href={`mailto:${SITE_SETTINGS.email}`} className="flex items-center gap-3 break-all transition-colors hover:text-[var(--accent)]">
+                  <Mail className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                  {SITE_SETTINGS.email}
+                </a>
               </li>
             </ul>
-          </div>
-
-          {/* Links Columns */}
-          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            <div>
-              <h4 className="font-display font-bold text-white text-sm uppercase tracking-wider mb-6">Company</h4>
-              <ul className="space-y-4">
-                {companyLinks.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href} className="text-slate-400 hover:text-[var(--accent)] transition-colors inline-flex items-center group">
-                      <span className="group-hover:translate-x-1 transition-transform">{l.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-display font-bold text-white text-sm uppercase tracking-wider mb-6">Services</h4>
-              <ul className="space-y-4">
-                {serviceLinks.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href} className="text-slate-400 hover:text-[var(--accent)] transition-colors inline-flex items-center group">
-                      <span className="group-hover:translate-x-1 transition-transform">{l.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-display font-bold text-white text-sm uppercase tracking-wider mb-6">Resources</h4>
-              <ul className="space-y-4">
-                {resourceLinks.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href} className="text-slate-400 hover:text-[var(--accent)] transition-colors inline-flex items-center group">
-                      <span className="group-hover:translate-x-1 transition-transform">{l.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+            <div className="mt-6 flex gap-2.5">
+              {socialLinks.map((social) => (
+                <Link
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  <social.icon className="h-4 w-4" />
+                </Link>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="py-7 md:py-8 border-t border-white/10 flex flex-col lg:flex-row justify-between items-center gap-5 md:gap-6">
-          <div className="flex flex-wrap gap-x-8 gap-y-3 justify-center lg:justify-start text-sm">
-            {legal.map((l) => (
-              <Link key={l.href} href={l.href} className="text-slate-500 hover:text-white transition-colors">
-                {l.label}
-              </Link>
+        <div className="flex flex-col gap-4 border-t border-white/15 py-6 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {year} {SITE_SETTINGS.company_name}
+          </p>
+          <ul className="flex gap-6">
+            {legalLinks.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="transition-colors hover:text-white">
+                  {item.label}
+                </Link>
+              </li>
             ))}
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <a href={SITE_SETTINGS.social.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[var(--accent)] hover:text-white transition-colors">
-              <Linkedin size={18} />
-            </a>
-            <a href={SITE_SETTINGS.social.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[var(--accent)] hover:text-white transition-colors">
-              <Facebook size={18} />
-            </a>
-            <a href={SITE_SETTINGS.social.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[var(--accent)] hover:text-white transition-colors">
-              <Instagram size={18} />
-            </a>
-          </div>
+          </ul>
         </div>
-        
-        {/* Copyright */}
-        <div className="pb-7 md:pb-8 text-center lg:text-left text-xs text-slate-600 flex flex-col md:flex-row justify-between items-center gap-2">
-          <span>© {new Date().getFullYear()} {SITE_SETTINGS.company_name}. All rights reserved.</span>
-          <span>Designed for Ghana, West Africa & International Trade.</span>
-        </div>
-      </Container>
+      </div>
     </footer>
   );
 }

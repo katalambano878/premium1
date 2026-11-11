@@ -11,6 +11,8 @@
   --accent: #2ec4b6;
   --accent-hover: #26a79b;
   --accent-soft: rgba(46, 196, 182, 0.14);
+  /* Teal deep enough for text on the light paper tones (5.6:1) */
+  --accent-ink: #0f6f67;
   --navy: #0b1f3a;
   --navy-light: #123056;
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
@@ -28,6 +30,20 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgba(46, 196, 182, 0.32);
+  color: var(--navy);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 .font-display {
@@ -173,4 +189,123 @@ body {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+/* Editorial system — Diya structure, Premium 1 navy and teal */
+.font-editorial {
+  font-family: var(--font-editorial), Georgia, "Times New Roman", serif;
+  letter-spacing: -0.02em;
+}
+
+.bg-paper {
+  background-color: #f4f8f8;
+}
+
+.bg-paper-soft {
+  background-color: #e7f6f4;
+}
+
+.bg-paper-mist {
+  background-color: #e8f1f6;
+}
+
+.bg-paper-sage {
+  background-color: #e3f2ef;
+}
+
+.bg-paper-butter {
+  background-color: #e7f4f2;
+}
+
+.text-ink {
+  color: #0b1f3a;
+}
+
+.text-ink-muted {
+  color: #4a5d73;
+}
+
+.border-line {
+  border-color: rgba(11, 31, 58, 0.12);
+}
+
+.ring-line {
+  box-shadow: 0 0 0 1px rgba(11, 31, 58, 0.1);
+}
+
+.paper-grain {
+  background-image:
+    radial-gradient(rgba(11, 31, 58, 0.045) 1px, transparent 1px),
+    radial-gradient(rgba(11, 31, 58, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px, 18px 18px;
+  background-position: 0 0, 9px 9px;
+}
+
+.ken-burns {
+  animation: ken-burns 18s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes ken-burns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1%, -1%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ken-burns {
+    animation: none !important;
+  }
+}
+
+
+/* Bold corporate homepage (home-v2): reskins shared sections with sans headings on white. */
+.home-v2 {
+  --font-editorial: var(--font-dm-sans);
+}
+.home-v2 .font-editorial {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.home-v2 .italic {
+  font-style: normal;
+}
+.home-v2 .bg-paper,
+.home-v2 .bg-paper-soft {
+  background: #ffffff;
+}
+.home-v2 .bg-paper-soft {
+  background: #f2f5f8;
+}
+.home-v2 .paper-grain {
+  display: none;
+}
+
+
+/*
+ * Site design (v3): light grey page, rounded panels, medium-weight DM Sans headings.
+ * `.site-v3` wraps every public page; these rules also reskin older components
+ * that still carry serif/display classes or paper backgrounds.
+ */
+.site-v3 {
+  --font-editorial: var(--font-dm-sans);
+  --font-display: var(--font-dm-sans);
+  background: #f4f4f5;
+  color: var(--navy);
+}
+.site-v3 .font-editorial,
+.site-v3 .font-display {
+  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.site-v3 .italic {
+  font-style: normal;
+}
+.site-v3 .bg-paper,
+.site-v3 .bg-paper-soft,
+.site-v3 .bg-paper-mist {
+  background: transparent;
+}
+.site-v3 .paper-grain {
+  display: none;
 }

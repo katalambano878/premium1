@@ -11,45 +11,32 @@ interface CTAButtonProps {
   onClick?: () => void;
 }
 
+/** Pill buttons. `primary` reads on light and dark panels; `secondary` is for light backgrounds, `light` for dark ones. */
 const variants = {
-  primary:
-    "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] shadow-lg shadow-[var(--accent)]/25",
-  secondary: "bg-[var(--navy)] text-white hover:bg-[var(--navy-light)]",
-  outline: "border-2 border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-white",
-  ghost: "text-[var(--ink)] hover:bg-black/5",
-  light: "border-2 border-white/80 text-white hover:bg-white hover:text-[var(--navy)]",
+  primary: "bg-[var(--accent)] text-[var(--navy)] hover:bg-[var(--accent-hover)] hover:text-white",
+  secondary: "bg-[var(--navy)] text-white hover:bg-[var(--accent)] hover:text-[var(--navy)]",
+  outline: "border border-slate-300 bg-white text-[var(--navy)] hover:border-[var(--navy)] hover:bg-[var(--navy)] hover:text-white",
+  ghost: "text-[var(--navy)] hover:bg-slate-100",
+  light: "border border-white/40 bg-white/10 text-white backdrop-blur-md hover:bg-white hover:text-[var(--navy)]",
 };
 
 const sizes = {
-  sm: "px-4 py-2.5 text-sm rounded-lg",
-  md: "px-6 py-3.5 text-base rounded-xl",
-  lg: "px-8 py-4 text-lg rounded-xl",
+  sm: "px-5 py-2.5 text-sm",
+  md: "px-6 py-3 text-base",
+  lg: "px-7 py-3.5 text-base",
 };
 
-export function CTAButton({
-  children,
-  href,
-  variant = "primary",
-  size = "md",
-  className,
-  external,
-  onClick,
-}: CTAButtonProps) {
+export function CTAButton({ children, href, variant = "primary", size = "md", className, external, onClick }: CTAButtonProps) {
   const base = cn(
-    "inline-flex items-center justify-center font-semibold transition-all duration-200 btn-hover-lift",
+    "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[background-color,color,border-color,transform] duration-200 active:scale-[0.97]",
     variants[variant],
     sizes[size],
-    className
+    className,
   );
 
   if (href) {
     return (
-      <Link
-        href={href}
-        className={base}
-        target={external ? "_blank" : undefined}
-        rel={external ? "noopener noreferrer" : undefined}
-      >
+      <Link href={href} className={base} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
         {children}
       </Link>
     );

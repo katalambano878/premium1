@@ -1,10 +1,13 @@
 "use server";
 
+import { requireStaff } from "@/lib/auth/session";
+
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
 
 export async function updateInquiryStatus(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   const supabase = createServiceRoleClient();
@@ -38,6 +41,7 @@ export async function updateInquiryStatus(formData: FormData) {
 }
 
 export async function assignInquiry(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const assigned_to = formData.get("assigned_to") as string;
   const supabase = createServiceRoleClient();
@@ -52,6 +56,7 @@ export async function assignInquiry(formData: FormData) {
 }
 
 export async function addInquiryNote(formData: FormData) {
+  await requireStaff();
   const inquiry_id = formData.get("inquiry_id") as string;
   const body = formData.get("body") as string;
   const supabase = createServiceRoleClient();
@@ -63,6 +68,7 @@ export async function addInquiryNote(formData: FormData) {
 }
 
 export async function setFollowUp(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const follow_up_at = formData.get("follow_up_at") as string;
   const supabase = createServiceRoleClient();
@@ -76,6 +82,7 @@ export async function setFollowUp(formData: FormData) {
 }
 
 export async function convertToShipment(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const supabase = createServiceRoleClient();
   if (!supabase) return;

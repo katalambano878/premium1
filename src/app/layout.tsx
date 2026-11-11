@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Syne } from "next/font/google";
+import { DM_Sans, Libre_Bodoni, Syne } from "next/font/google";
 import "./globals.css";
 import { PublicShell } from "@/components/layout/PublicShell";
 import { siteConfig } from "@/lib/siteConfig";
@@ -14,6 +14,13 @@ const syne = Syne({
   variable: "--font-syne",
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
+});
+
+const libreBodoni = Libre_Bodoni({
+  variable: "--font-editorial",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 export const viewport: Viewport = {
@@ -87,7 +94,7 @@ export default function RootLayout({
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
-      <body className={`${dmSans.variable} ${syne.variable} font-sans antialiased overflow-x-hidden`}>
+      <body className={`${dmSans.variable} ${syne.variable} ${libreBodoni.variable} bg-paper font-sans antialiased overflow-x-hidden`}>
         <PublicShell>{children}</PublicShell>
       </body>
     </html>

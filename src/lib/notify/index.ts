@@ -8,15 +8,16 @@ export interface SendNotificationParams {
   recipient: string;
   subject?: string;
   body: string;
+  replyTo?: string;
   templateKey?: string;
   payload?: Record<string, unknown>;
 }
 
 export async function sendNotification(params: SendNotificationParams): Promise<{ success: boolean; error?: string }> {
-  const { channel, recipient, subject, body } = params;
+  const { channel, recipient, subject, body, replyTo } = params;
 
   if (channel === "email") {
-    return sendEmail(recipient, subject || "Premium 1 Logistics", body);
+    return sendEmail(recipient, subject || "Premium 1 Logistics", body, { replyTo });
   }
 
   if (channel === "sms") {
@@ -64,7 +65,7 @@ export async function sendTemplateNotification(opts: {
   }
 
   const interpolate = (str: string) =>
-    str.replace(/\{\{(\w+)\}\}/g, (_, k) => payload[k] || "");
+    str.replace(/\\n/g, "\n").replace(/\{\{(\w+)\}\}/g, (_, k) => payload[k] || "");
 
   subject = interpolate(subject);
   body = interpolate(body);
@@ -72,13 +73,17 @@ export async function sendTemplateNotification(opts: {
   const result = await sendNotification({ channel, recipient, subject, body });
 
   if (supabase) {
-    await supabase.from("notifications").insert({
-      channel,
-      recipient,
-      template_key: templateKey,
-      payload,
-      status: result.success ? "sent" : "failed",
-    }).catch(() => {});
+    try {
+      await supabase.from("notifications").insert({
+        channel,
+        recipient,
+        template_key: templateKey,
+        payload,
+        status: result.success ? "sent" : "failed",
+      });
+    } catch {
+      // logging is best-effort
+    }
   }
 
   return result;

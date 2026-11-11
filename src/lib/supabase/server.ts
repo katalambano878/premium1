@@ -1,28 +1,22 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+// Database access on plain Postgres (fleet-postgres on big-vps) through the
+// supabase-js compatible layer in src/lib/db. The names are kept so existing
+// call sites work unchanged.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/db/supabase-compat";
+import { isPlainPostgres } from "@/lib/db/mode";
 
-export async function createServerSupabaseClient() {
-  const cookieStore = await cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-      },
-    },
-  });
+/**
+ * Server client for admin pages. Runs as the database owner; access control is
+ * the staff session checked in middleware, the admin layout and each action.
+ * `auth.getUser()` reports the signed-in staff member.
+ */
+export async function createServerSupabaseClient(): Promise<SupabaseClient | null> {
+  if (!isPlainPostgres()) return null;
+  return createClient() as unknown as SupabaseClient;
 }
 
-import { createClient } from "@supabase/supabase-js";
-
-export function createServiceRoleClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
+/** Service client for API routes and server actions (database owner). */
+export function createServiceRoleClient(): SupabaseClient | null {
+  if (!isPlainPostgres()) return null;
+  return createClient() as unknown as SupabaseClient;
 }

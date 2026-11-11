@@ -1,10 +1,13 @@
 "use server";
 
+import { requireStaff } from "@/lib/auth/session";
+
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
 
 export async function updateClient(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const supabase = createServiceRoleClient();
   if (!supabase) return;
@@ -38,6 +41,7 @@ export async function updateClient(formData: FormData) {
 }
 
 export async function addClientNote(formData: FormData) {
+  await requireStaff();
   const client_id = formData.get("client_id") as string;
   const body = formData.get("body") as string;
   const supabase = createServiceRoleClient();
@@ -55,6 +59,7 @@ export async function addClientNote(formData: FormData) {
 }
 
 export async function createClient(formData: FormData) {
+  await requireStaff();
   const supabase = createServiceRoleClient();
   if (!supabase) return;
 

@@ -15,12 +15,12 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <div className="site-v3">
       <Header />
       <main className="min-h-screen">{children}</main>
       <Footer />
       <FloatingWhatsApp />
       <CookieConsent />
-    </>
+    </div>
   );
 }

@@ -1,10 +1,13 @@
 "use server";
 
+import { requireStaff } from "@/lib/auth/session";
+
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
 
 export async function createInvoice(formData: FormData) {
+  await requireStaff();
   const supabase = createServiceRoleClient();
   if (!supabase) return;
 
@@ -65,6 +68,7 @@ export async function createInvoice(formData: FormData) {
 }
 
 export async function updateInvoiceStatus(formData: FormData) {
+  await requireStaff();
   const supabase = createServiceRoleClient();
   if (!supabase) return;
 
@@ -87,6 +91,7 @@ export async function updateInvoiceStatus(formData: FormData) {
 }
 
 export async function addPayment(formData: FormData) {
+  await requireStaff();
   const supabase = createServiceRoleClient();
   if (!supabase) return;
 

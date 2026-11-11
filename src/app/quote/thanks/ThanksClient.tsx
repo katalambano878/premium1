@@ -1,23 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { CTAButton } from "@/components/design-system/CTAButton";
 
-export function ThanksClient({ inquiryNo }: { inquiryNo: string }) {
-  const [inquiryId, setInquiryId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("");
-  const [demo, setDemo] = useState(false);
+const subscribeNoop = () => () => {};
 
-  useEffect(() => {
-    try {
-      const id = sessionStorage.getItem("lastInquiryId");
-      const d = sessionStorage.getItem("lastInquiryDemo") === "1";
-      setInquiryId(id && id !== "demo" ? id : null);
-      setDemo(d || id === "demo");
-    } catch {
-      /* */
-    }
-  }, []);
+function readStoredInquiry() {
+  try {
+    return `${sessionStorage.getItem("lastInquiryId") ?? ""}|${sessionStorage.getItem("lastInquiryDemo") ?? ""}`;
+  } catch {
+    return "|";
+  }
+}
+
+export function ThanksClient({ inquiryNo }: { inquiryNo: string }) {
+  const [status, setStatus] = useState<string>("");
+  // Read the last enquiry from sessionStorage on the client only (empty on the server).
+  const stored = useSyncExternalStore(subscribeNoop, readStoredInquiry, () => "|");
+  const [storedId, storedDemo] = stored.split("|");
+  const inquiryId = storedId && storedId !== "demo" ? storedId : null;
+  const demo = storedDemo === "1" || storedId === "demo";
 
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -27,36 +29,36 @@ export function ThanksClient({ inquiryNo }: { inquiryNo: string }) {
     fd.append("file", file);
     fd.append("inquiry_id", inquiryId);
     const res = await fetch("/api/upload/inquiry", { method: "POST", body: fd });
-    if (res.ok) setStatus("Uploaded successfully. Our team will link it to your file.");
+    if (res.ok) setStatus("Uploaded successfully. Our team will add it to your enquiry.");
     else setStatus("Upload failed—email documents to " + (process.env.NEXT_PUBLIC_SITE_EMAIL || "info@premium1logistics.com"));
   };
 
   return (
-    <div className="rounded-3xl bg-white border border-slate-200/80 p-8 md:p-10 max-w-xl mx-auto">
-      <p className="text-sm font-semibold text-[var(--accent)] uppercase tracking-wider">Reference</p>
-      <p className="font-display font-bold text-3xl text-[var(--ink)] mt-2">{inquiryNo}</p>
-      <p className="mt-6 text-slate-600 leading-relaxed">
-        We have received your enquiry. A specialist will respond within <strong>24–48 business hours</strong> with a structured
+    <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 sm:p-10">
+      <p className="text-sm text-slate-500">Your reference</p>
+      <p className="mt-1 break-all text-3xl font-medium tracking-[-0.02em] text-[var(--navy)]">{inquiryNo}</p>
+      <p className="mt-6 text-base leading-7 text-slate-600">
+        We have received your enquiry. A specialist will respond within <strong className="font-medium text-[var(--navy)]">24 hours</strong> with a written
         quote or follow-up questions.
       </p>
       {demo && (
-        <p className="mt-4 text-sm text-[var(--navy)] bg-[var(--accent-soft)] border border-[var(--accent)]/30 rounded-xl p-4">
-          Demo mode: connect Supabase to store inquiries and enable file upload. Set <code className="text-xs">ALLOW_QUOTE_WITHOUT_DB</code> only for testing.
+        <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-[var(--navy)]">
+          To add documents, reply to the confirmation email we sent you.
         </p>
       )}
       {inquiryId && !demo && (
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <p className="font-display font-bold text-[var(--ink)] mb-2">Upload documents (optional)</p>
+        <div className="mt-8 border-t border-slate-200 pt-8">
+          <p className="mb-2 text-lg font-medium text-[var(--navy)]">Upload documents (optional)</p>
           <p className="text-sm text-slate-500 mb-4">Invoice draft, packing list, or supplier specs—PDF or images up to 20MB.</p>
-          <label className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer text-sm font-semibold text-[var(--ink)]">
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-medium text-[var(--navy)] transition-colors hover:border-[var(--navy)] hover:bg-[var(--navy)] hover:text-white">
             Choose file
             <input type="file" className="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onChange={upload} />
           </label>
           {status && <p className="mt-3 text-sm text-slate-600">{status}</p>}
         </div>
       )}
-      <div className="mt-10 flex flex-wrap gap-4">
-        <CTAButton href="/">Back to home</CTAButton>
+      <div className="mt-10 flex flex-wrap gap-3">
+        <CTAButton href="/" variant="secondary">Back to home</CTAButton>
         <CTAButton href="/contact" variant="outline">
           Contact us
         </CTAButton>

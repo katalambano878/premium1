@@ -1,96 +1,108 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { clean, isEmail, staffRecipients } from "@/lib/forms";
+import { clientIp, isRateLimited } from "@/lib/rate-limit";
+import { siteUrl } from "@/lib/site-url";
+
+const METHODS = new Set(["sea", "air", "road"]);
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const {
-      origin,
-      destination,
-      cargo,
-      method,
-      requirements,
-      full_name,
-      company_name,
-      email,
-      phone,
-      website,
-      _hp,
-    } = body;
-
-    if (website || _hp) {
+    const body = await request.json().catch(() => null);
+    if (!body || body.website || body._hp) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
+    if (isRateLimited(`quote:${clientIp(request)}`, 8, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many requests. Please try again later or email us directly." }, { status: 429 });
+    }
 
-    if (!origin || !destination || !full_name || !email || !phone || !method) {
+    const origin = clean(body.origin, 200);
+    const destination = clean(body.destination, 200);
+    const method = clean(body.method, 10).toLowerCase();
+    const full_name = clean(body.full_name, 120);
+    const company_name = clean(body.company_name, 160);
+    const email = clean(body.email, 200);
+    const phone = clean(body.phone, 40);
+    const requirements = clean(body.requirements, 5000);
+    const rawCargo = body.cargo && typeof body.cargo === "object" ? body.cargo : {};
+    const cargo = {
+      type: clean(rawCargo.type, 200),
+      dimensions: clean(rawCargo.dimensions, 200),
+      weight: clean(rawCargo.weight, 100),
+      quantity: clean(rawCargo.quantity, 100),
+    };
+
+    if (!origin || !destination || !full_name || !isEmail(email) || !phone || !METHODS.has(method)) {
       return NextResponse.json(
-        { error: "Missing required fields: origin, destination, full_name, email, phone, method" },
-        { status: 400 }
+        { error: "Please fill in origin, destination, shipping method, your name, a valid email and a phone number." },
+        { status: 400 },
       );
     }
 
     const supabase = createServiceRoleClient();
     if (!supabase) {
-      if (process.env.ALLOW_QUOTE_WITHOUT_DB === "true") {
-        const no = `INQ-DEMO-${Date.now().toString(36).toUpperCase()}`;
-        try {
-          const staffEmail = process.env.NOTIFY_STAFF_EMAIL || process.env.EMAIL_FROM;
-          if (staffEmail) {
-            const { sendNotification } = await import("@/lib/notify");
-            await sendNotification({
-              channel: "email",
-              recipient: staffEmail,
-              subject: `Quote request (demo) ${no}`,
-              body: `${full_name} ${email} ${phone}\n${origin} → ${destination}\n${method}`,
-            });
-          }
-        } catch {
-          /* optional */
-        }
-        return NextResponse.json({ success: true, id: "demo", inquiry_no: no, demo: true });
-      }
       return NextResponse.json({ error: "Database not configured" }, { status: 503 });
     }
 
     const { data: inquiryNoRes } = await supabase.rpc("gen_inquiry_no");
-    const inquiryNoVal = (Array.isArray(inquiryNoRes) ? inquiryNoRes[0] : inquiryNoRes) || `INQ-${Date.now()}`;
+    const inquiryNo = (Array.isArray(inquiryNoRes) ? inquiryNoRes[0] : inquiryNoRes) || `INQ-${Date.now()}`;
 
     const { data, error } = await supabase
       .from("inquiries")
       .insert({
-        inquiry_no: inquiryNoVal,
+        inquiry_no: inquiryNo,
         company_name: company_name || null,
-        full_name: full_name,
+        full_name,
         email,
         phone,
         origin,
         destination,
-        cargo: cargo || {},
-        method: method || "sea",
+        cargo,
+        method,
         requirements: requirements || null,
         status: "new",
+        source: "website",
       })
       .select("id, inquiry_no")
       .single();
 
-    if (error) {
+    if (error || !data) {
       console.error("Inquiry insert error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "We could not save your request. Please try again or email us." }, { status: 500 });
     }
 
-    // Trigger notifications: email to staff + SMS alert + confirmation to client
+    // Notifications must never fail the request: the enquiry is already saved.
     try {
       const { sendNotification, sendTemplateNotification } = await import("@/lib/notify");
-      const staffEmail = process.env.NOTIFY_STAFF_EMAIL || process.env.EMAIL_FROM;
-      if (staffEmail) {
-        await sendNotification({
-          channel: "email",
-          recipient: staffEmail,
-          subject: "New Inquiry - Premium 1 Logistics",
-          body: `New inquiry ${data.inquiry_no} from ${full_name} (${email}). Origin: ${origin} → ${destination}. Check admin dashboard.`,
-        });
-      }
-      // SMS alert to staff
+      const staffText = [
+        `New quote request ${data.inquiry_no}`,
+        "",
+        `Name: ${full_name}`,
+        `Company: ${company_name || "-"}`,
+        `Email: ${email}`,
+        `Phone: ${phone}`,
+        "",
+        `Route: ${origin} to ${destination} (${method})`,
+        `Cargo: ${cargo.type || "-"}`,
+        `Dimensions: ${cargo.dimensions || "-"}`,
+        `Weight: ${cargo.weight || "-"}`,
+        `Quantity: ${cargo.quantity || "-"}`,
+        "",
+        `Requirements: ${requirements || "-"}`,
+        "",
+        `Open it in the dashboard: ${siteUrl()}/admin/inquiries/${data.id}`,
+      ].join("\n");
+      await Promise.all(
+        staffRecipients().map((to) =>
+          sendNotification({
+            channel: "email",
+            recipient: to,
+            subject: `New quote request ${data.inquiry_no}: ${origin} to ${destination}`,
+            body: staffText,
+            replyTo: email,
+          }),
+        ),
+      );
       const staffPhone = process.env.NOTIFY_STAFF_PHONE;
       if (staffPhone) {
         await sendTemplateNotification({
@@ -101,18 +113,15 @@ export async function POST(request: Request) {
           supabase,
         });
       }
-      // Confirmation email to client
-      if (email) {
-        await sendTemplateNotification({
-          templateKey: "inquiry_confirmation",
-          channel: "email",
-          recipient: email,
-          payload: { inquiry_no: data.inquiry_no, client_name: full_name },
-          supabase,
-        });
-      }
-    } catch (_) {
-      // Notifications are optional
+      await sendTemplateNotification({
+        templateKey: "inquiry_confirmation",
+        channel: "email",
+        recipient: email,
+        payload: { inquiry_no: data.inquiry_no, client_name: full_name },
+        supabase,
+      });
+    } catch (e) {
+      console.error("[inquiry notifications]", e);
     }
 
     return NextResponse.json({ success: true, id: data.id, inquiry_no: data.inquiry_no });

@@ -1,5 +1,7 @@
 "use server";
 
+import { requireStaff } from "@/lib/auth/session";
+
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
@@ -7,6 +9,7 @@ import { logActivity } from "@/lib/activity";
 const SHIP_STATUSES = ["draft", "booked", "in_transit", "arrived", "clearing", "out_for_delivery", "delivered"];
 
 export async function updateShipmentStatus(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   if (!SHIP_STATUSES.includes(status)) return;
@@ -77,6 +80,7 @@ export async function updateShipmentStatus(formData: FormData) {
 }
 
 export async function assignShipment(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const assigned_to = formData.get("assigned_to") as string;
   const supabase = createServiceRoleClient();
@@ -91,6 +95,7 @@ export async function assignShipment(formData: FormData) {
 }
 
 export async function addShipmentEvent(formData: FormData) {
+  await requireStaff();
   const shipment_id = formData.get("shipment_id") as string;
   const body = formData.get("body") as string;
   const supabase = createServiceRoleClient();
@@ -105,6 +110,7 @@ export async function addShipmentEvent(formData: FormData) {
 }
 
 export async function updateKeyDates(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const supabase = createServiceRoleClient();
   if (!supabase) return;
@@ -121,6 +127,7 @@ export async function updateKeyDates(formData: FormData) {
 }
 
 export async function updateShipmentNotes(formData: FormData) {
+  await requireStaff();
   const id = formData.get("id") as string;
   const cost_notes = formData.get("cost_notes") as string;
   const service_notes = formData.get("service_notes") as string;
@@ -135,6 +142,7 @@ export async function updateShipmentNotes(formData: FormData) {
 }
 
 export async function createShipment(formData: FormData) {
+  await requireStaff();
   const supabase = createServiceRoleClient();
   if (!supabase) return;
 

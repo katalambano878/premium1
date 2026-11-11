@@ -3,12 +3,15 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { ArrowUpRight } from "lucide-react";
+
+const inputClass =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-[var(--navy)] placeholder:text-slate-400 focus:border-[var(--navy)] focus:outline-none";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const setup = searchParams.get("setup") === "1";
+  const next = searchParams.get("next");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -18,70 +21,55 @@ function LoginForm() {
     e.preventDefault();
     setErr("");
     setLoading(true);
-    const supabase = createClient();
-    if (!supabase) {
-      setErr("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and ANON_KEY, or use ADMIN_AUTH_DISABLED=true.");
-      setLoading(false);
-      return;
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }).catch(() => null);
     setLoading(false);
-    if (error) {
-      setErr(error.message);
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {};
+      setErr(data.error || "Sign-in failed. Check your connection and try again.");
       return;
     }
-    router.push("/admin");
+    router.push(next && next.startsWith("/admin") ? next : "/admin");
     router.refresh();
   };
 
   return (
-    <div className="min-h-screen bg-[var(--navy)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-        <h1 className="font-display font-bold text-2xl text-[var(--ink)]">Admin sign in</h1>
-        <p className="mt-2 text-sm text-slate-600">Premium 1 Logistics operations dashboard</p>
-
-        {setup && (
-          <div className="mt-4 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/35 text-[var(--navy)] text-sm p-4">
-            <strong>Setup required:</strong> Add Supabase URL and anon key, create a user in Supabase Auth, or set{" "}
-            <code className="bg-white/75 px-1 rounded">ADMIN_AUTH_DISABLED=true</code> for local demo only.
-          </div>
-        )}
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f4f5] p-5">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 sm:p-10">
+        <h1 className="text-2xl font-medium tracking-[-0.02em] text-[var(--navy)]">Staff sign in</h1>
+        <p className="mt-2 text-sm text-slate-500">Premium 1 Logistics operations dashboard</p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-premium"
-              required
-              autoComplete="email"
-            />
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[var(--navy)]">Email</label>
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} required autoComplete="email" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input-premium"
-              required
-              autoComplete="current-password"
-            />
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[var(--navy)]">Password</label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} required autoComplete="current-password" />
           </div>
-          {err && <p className="text-sm text-red-600">{err}</p>}
+          {err ? <p className="text-sm text-red-600" role="alert">{err}</p> : null}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--navy)] py-3.5 text-base font-medium text-white transition-colors hover:bg-[var(--accent)] hover:text-[var(--navy)] disabled:opacity-50"
           >
             {loading ? "Signing in…" : "Sign in"}
+            {!loading ? <ArrowUpRight className="h-4 w-4" /> : null}
           </button>
         </form>
-        <Link href="/" className="mt-6 block text-center text-sm text-[var(--accent)] hover:underline">
-          ← Back to website
-        </Link>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <Link href="/auth/admin/reset" className="font-medium text-[var(--navy)] underline-offset-4 hover:underline">
+            Set or reset password
+          </Link>
+          <Link href="/" className="text-slate-500 hover:text-[var(--navy)]">
+            Back to website
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -89,7 +77,7 @@ function LoginForm() {
 
 export default function AdminAuthPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--navy)]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#f4f4f5]" />}>
       <LoginForm />
     </Suspense>
   );

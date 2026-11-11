@@ -1,19 +1,23 @@
-import { ParallaxHero } from "@/components/ui/ParallaxHero";
-import { ServicesPreview } from "@/components/sections/ServicesPreview";
-import { StatsBar } from "@/components/sections/StatsBar";
-import { ProcessPreview } from "@/components/sections/ProcessPreview";
-import { TestimonialsPreview } from "@/components/sections/TestimonialsPreview";
-import { CTABanner } from "@/components/sections/CTABanner";
+import { Hero } from "@/components/home-v3/Hero";
+import { Features } from "@/components/home-v3/Features";
+import { Process } from "@/components/home-v3/Process";
+import { ServicesDark } from "@/components/home-v3/ServicesDark";
+import { IndustriesStrip } from "@/components/home-v3/IndustriesStrip";
+import { Closing } from "@/components/home-v3/Closing";
+import { CorridorAtlas } from "@/components/home-editorial/CorridorAtlas";
+import { Faq } from "@/components/home-editorial/Faq";
 
 export default function Home() {
   return (
-    <>
-      <ParallaxHero />
-      <StatsBar />
-      <ServicesPreview />
-      <ProcessPreview />
-      <TestimonialsPreview />
-      <CTABanner />
-    </>
+    <div>
+      <Hero />
+      <Features />
+      <Process />
+      <ServicesDark />
+      <IndustriesStrip />
+      <CorridorAtlas />
+      <Faq />
+      <Closing />
+    </div>
   );
 }

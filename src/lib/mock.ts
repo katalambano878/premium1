@@ -122,7 +122,7 @@ export const MOCK_STATS = [
   { end: 15, suffix: "+", prefix: "", label: "Years experience" },
   { end: 50, suffix: "+", prefix: "", label: "Corporate clients" },
   { end: 12, suffix: "", prefix: "", label: "West Africa routes" },
-  { end: 24, suffix: "/7", prefix: "", label: "Operations desk" },
+  { end: 24, suffix: "/7", prefix: "", label: "Operations support" },
 ];
 
 export const MOCK_COVERAGE = [
@@ -157,7 +157,7 @@ export const SITE_SETTINGS = {
   operationsEmail: siteConfig.operationsEmail,
   whatsapp: siteConfig.whatsappE164,
   address: siteConfig.addressLine,
-  hours: "Mon–Fri 8:00–18:00 GMT · Emergency desk 24/7 for active shipments",
+  hours: "Mon–Fri 8:00–18:00 GMT · Emergency line 24/7 for active shipments",
   calendlyUrl: siteConfig.calendlyUrl,
   social: {
     whatsapp: `https://wa.me/${siteConfig.whatsappE164}`,

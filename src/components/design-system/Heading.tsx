@@ -8,10 +8,10 @@ interface HeadingProps {
 }
 
 const sizeClasses = {
-  xl: "text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight",
-  lg: "text-2xl sm:text-3xl font-semibold tracking-tight",
-  md: "text-xl sm:text-2xl font-semibold",
-  sm: "text-lg font-semibold",
+  xl: "text-3xl sm:text-[2.5rem] font-medium leading-[1.15] tracking-[-0.02em]",
+  lg: "text-2xl sm:text-3xl font-medium leading-[1.2] tracking-[-0.02em]",
+  md: "text-xl sm:text-2xl font-medium tracking-[-0.01em]",
+  sm: "text-lg font-medium",
 };
 
 export function Heading({ children, as: Tag = "h2", size = "lg", className }: HeadingProps) {

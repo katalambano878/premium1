@@ -76,7 +76,7 @@ export const EXTENDED_TESTIMONIALS: Array<{
     role: "MD",
     avatar: "/testimonial-avatar.webp",
     quote:
-      "From LC documents to final warehouse delivery, one thread. Our bank’s doc checker even commented on the consistency.",
+      "From LC documents to final warehouse delivery, one team. Our bank’s doc checker even commented on the consistency.",
     rating: 5,
   },
   {
@@ -117,7 +117,7 @@ export const CAREERS_ROLES = [
     title: "Senior Customs Broker",
     type: "Full-time · Accra",
     summary:
-      "Lead clearance files for FMCG and industrial clients; mentor juniors; interface with GRA on complex rulings.",
+      "Lead clearances for FMCG and industrial clients; mentor juniors; interface with GRA on complex rulings.",
   },
   {
     title: "Operations Coordinator — Sea Freight",
@@ -190,7 +190,7 @@ export const SERVICE_CASE_SNIPPETS: Record<string, { title: string; body: string
 
 export const INSIGHT_AUTHORS = {
   default: {
-    name: "Operations Desk",
+    name: "Operations Team",
     title: "Premium 1 Logistics",
     bio: "Practitioner notes from our brokerage and freight teams.",
   },

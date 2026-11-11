@@ -1,33 +1,17 @@
-import { createServiceRoleClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { getNavItems, type StaffRole } from "@/lib/auth/roles";
+import { getNavItems } from "@/lib/auth/roles";
+import { getSessionUser } from "@/lib/auth/session";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  let userEmail: string | null = null;
-  let role: StaffRole = "admin";
-
-  const supabase = await createServerSupabaseClient();
-  if (supabase) {
-    const { data: { user } } = await supabase.auth.getUser();
-    userEmail = user?.email ?? null;
-
-    if (userEmail) {
-      const svc = createServiceRoleClient();
-      if (svc) {
-        const { data: staffRow } = await svc
-          .from("staff_users")
-          .select("role")
-          .eq("email", userEmail)
-          .single();
-        if (staffRow?.role) role = staffRow.role as StaffRole;
-      }
-    }
-  }
-
-  const navItems = getNavItems(role);
+  // Re-checks the staff record on every request, so a deactivated account loses access at once.
+  const user = await getSessionUser();
+  if (!user) redirect("/auth/admin");
 
   return (
-    <AdminShell navItems={navItems} userEmail={userEmail}>
+    <AdminShell navItems={getNavItems(user.role)} userEmail={user.email}>
       {children}
     </AdminShell>
   );

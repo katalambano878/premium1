@@ -1,5 +1,4 @@
 import { PageHero } from "@/components/page/PageHero";
-import { Container, Section } from "@/components/design-system";
 
 export function LegalDocument({
   title,
@@ -12,31 +11,21 @@ export function LegalDocument({
 }) {
   return (
     <>
-      <PageHero
-        eyebrow="Legal Information"
-        title={title}
-        description={`Last updated: ${updated}`}
-        backgroundImage="/hero-slide-2.webp"
-      />
-      <Section background="muted" className="relative pb-24 md:pb-32 -mt-10 sm:-mt-16 z-10 bg-transparent">
-        <Container size="narrow">
-          <div className="rounded-3xl bg-white border border-slate-200/80 shadow-2xl shadow-slate-900/5 p-8 md:p-14 lg:p-20 relative">
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] rounded-t-3xl" />
-            <article className="prose-page space-y-12">
-              {sections.map((sec) => (
-                <section key={sec.title}>
-                  <h2 className="font-display font-bold text-2xl text-[var(--ink)] mb-6 tracking-tight">{sec.title}</h2>
-                  <div className="space-y-4 text-slate-600 leading-relaxed text-lg">
-                    {sec.paragraphs.map((p) => (
-                      <p key={p.slice(0, 50)}>{p}</p>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </article>
-          </div>
-        </Container>
-      </Section>
+      <PageHero eyebrow="Legal" title={title} description={`Last updated: ${updated}`} />
+      <section className="px-3 py-12 sm:px-6 sm:py-16">
+        <article className="mx-auto max-w-3xl space-y-10 rounded-3xl border border-slate-200 bg-white px-5 py-8 sm:space-y-12 sm:p-10 lg:p-14">
+          {sections.map((sec) => (
+            <section key={sec.title}>
+              <h2 className="text-2xl font-medium tracking-[-0.02em] text-[var(--navy)]">{sec.title}</h2>
+              <div className="mt-4 space-y-4 text-base leading-8 text-slate-700 sm:text-lg sm:leading-8">
+                {sec.paragraphs.map((p) => (
+                  <p key={p.slice(0, 50)}>{p}</p>
+                ))}
+              </div>
+            </section>
+          ))}
+        </article>
+      </section>
     </>
   );
 }

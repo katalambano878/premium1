@@ -35,9 +35,9 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
           "Sea-air and road bridge combinations for lanes where speed, cost, and reliability need a blended strategy.",
       },
       {
-        title: "Shipment control desk",
+        title: "Shipment control team",
         description:
-          "One operations thread managing booking, draft docs, pre-alerts, and exception response from origin to destination.",
+          "One operations team managing booking, draft docs, pre-alerts, and exception response from origin to destination.",
       },
     ],
     salesPoints: [
@@ -73,7 +73,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
       },
       {
         title: "Document and milestone control",
-        description: "Draft approvals, pre-alerts, and status gates are managed through one accountable operations thread.",
+        description: "Draft approvals, pre-alerts, and status gates are managed through one accountable operations team.",
       },
       {
         title: "Arrival and handoff",
@@ -82,7 +82,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
     ],
     differentiators: [
       "Forwarding designed around business outcomes, not rate sheets alone",
-      "Named operator ownership for every active file",
+      "A named contact for every active shipment",
       "Assumption-driven quoting with explicit re-rate triggers",
     ],
     faqs: [
@@ -103,7 +103,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
   },
   "import-export-handling": {
     longLead:
-      "Most international shipment failures happen in paperwork, not transport. Our import/export handling service works as a document and stakeholder control tower - aligning supplier files, bank requirements, carrier rules, and customs expectations before they collide. The result is fewer amendment loops, faster release readiness, and cleaner execution across every trade file.",
+      "Most international shipment failures happen in paperwork, not transport. Our import/export handling service works as a document and stakeholder control tower - aligning supplier documents, bank requirements, carrier rules, and customs expectations before they collide. The result is fewer amendment loops, faster release readiness, and cleaner execution across every trade file.",
     offerings: [
       {
         title: "Document QA and harmonization",
@@ -137,20 +137,20 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
       },
       {
         title: "Lower internal workload",
-        body: "One governed file thread cuts the manual follow-up burden on procurement and logistics teams.",
+        body: "One managed point of contact cuts the manual follow-up burden on procurement and logistics teams.",
       },
     ],
     highlights: [
       "Document integrity checks before shipment milestones",
       "Commodity-specific checklists with compliance traceability",
-      "Single communication thread across all parties",
+      "One line of communication across all parties",
       "Archive-ready close-out packs per shipment",
     ],
     whoItServes:
       "Import managers, export coordinators, distributors, and trading teams handling multi-party documentation risk.",
     workflow: [
       {
-        title: "File onboarding",
+        title: "Shipment onboarding",
         description: "Trade terms, counterparties, and document sets are captured into a single control workflow.",
       },
       {
@@ -169,7 +169,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
     differentiators: [
       "Paperwork handled as an operational control discipline",
       "L/C-aware execution with commercial deadline sensitivity",
-      "Audit-friendly document retention by file reference",
+      "Audit-friendly document retention by shipment reference",
     ],
     faqs: [
       {
@@ -241,7 +241,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
       { title: "Release and handoff", description: "Gate-out and onward movement are coordinated with completion documentation." },
     ],
     differentiators: [
-      "Senior broker involvement on complex commodity files",
+      "Senior broker involvement on complex commodity cases",
       "SLA-oriented query and assessment response model",
       "Post-clearance support for audit and control evidence",
     ],
@@ -306,7 +306,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
         body: "Line-item discipline and verification improve financial transparency and reduce post-fixture disputes.",
       },
       {
-        title: "Single operating thread",
+        title: "One point of contact",
         body: "Owners, charterers, and technical teams stay aligned through one accountable local coordination point.",
       },
     ],
@@ -439,7 +439,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
           "Permit, escort, and border-process support for ECOWAS-linked transit requirements.",
       },
       {
-        title: "Active movement control desk",
+        title: "Active movement control team",
         description:
           "Checkpoint updates and exception escalation for live visibility throughout the journey.",
       },
@@ -495,7 +495,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
   },
   "door-to-door-delivery": {
     longLead:
-      "Door-to-door is valuable only when accountability is real. We integrate pickup, main carriage, clearance, and final-mile delivery under one operations owner and one governed communication thread. You get simpler vendor management without sacrificing transparency on timing, cost, or compliance responsibilities.",
+      "Door-to-door is valuable only when accountability is real. We integrate pickup, main carriage, clearance, and final-mile delivery under one operations owner and one managed line of communication. You get simpler vendor management without sacrificing transparency on timing, cost, or compliance responsibilities.",
     offerings: [
       {
         title: "Origin pickup and export prep",
@@ -529,7 +529,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
       },
       {
         title: "Clearer end-to-end visibility",
-        body: "Milestones across all legs are tracked in one thread for operations, finance, and compliance stakeholders.",
+        body: "Milestones across all legs are tracked in one place for operations, finance, and compliance stakeholders.",
       },
     ],
     highlights: [
@@ -544,12 +544,12 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
       { title: "Scope lock", description: "Incoterms, addresses, cargo limits, and timeline expectations are confirmed upfront." },
       { title: "Origin and transit control", description: "Pickup and main carriage are executed with milestone visibility and proactive updates." },
       { title: "Import-side completion", description: "Clearance and release are coordinated with exception handling where required." },
-      { title: "Final-mile close-out", description: "Delivery and POD are completed with full file traceability and handover proof." },
+      { title: "Final-mile close-out", description: "Delivery and POD are completed with full traceability and handover proof." },
     ],
     differentiators: [
       "Single-chain accountability across all transport legs",
       "Commercial transparency despite multi-leg complexity",
-      "Escalation-ready support for urgent or sensitive files",
+      "Escalation-ready support for urgent or sensitive shipments",
     ],
     faqs: [
       {
@@ -645,7 +645,7 @@ export const SERVICE_DEEP: Record<string, ServiceDeepContent> = {
 
 export const DEFAULT_SERVICE_DEEP: ServiceDeepContent = {
   longLead:
-    "Our team tailors logistics execution to your commodity, timeline, and compliance profile. From first inquiry through final delivery, you work with experienced operators who understand Ghana and the wider West Africa corridor.",
+    "Our team tailors logistics execution to your commodity, timeline, and compliance profile. From first inquiry through final delivery, you work with experienced coordinators who understand Ghana and the wider West Africa corridor.",
   highlights: [
     "Structured quotation and booking process",
     "Documentation and regulatory alignment",
@@ -799,7 +799,7 @@ export const INSIGHT_SECTIONS: Record<string, InsightSection[]> = {
       heading: "Working with a local partner",
       paragraphs: [
         "A competent broker and forwarder combination reduces email chains between you, the carrier, and customs. Look for named contacts, written quotations, and milestone-based updates rather than ad-hoc WhatsApp threads alone.",
-        "Premium 1 structures each file with a reference number, document checklist, and escalation path—so finance, procurement, and operations stay aligned.",
+        "Premium 1 sets up each shipment with a reference number, document checklist, and escalation path—so finance, procurement, and operations stay aligned.",
       ],
     },
   ],
@@ -876,7 +876,7 @@ export const INSIGHT_SECTIONS: Record<string, InsightSection[]> = {
     {
       heading: "Counterparty and commodity",
       paragraphs: [
-        "Screen shipper, consignee, notify party, and banks on every file. For sensitive commodities, confirm HS chapters against restricted lists before accepting bookings.",
+        "Screen shipper, consignee, notify party, and banks on every shipment. For sensitive commodities, confirm HS chapters against restricted lists before accepting bookings.",
       ],
     },
     {

@@ -1,25 +1,9 @@
-import Image from "next/image";
-import { Container, Section, CTAButton } from "@/components/design-system";
+import { CTAButton } from "@/components/design-system";
 import { PageHero } from "@/components/page/PageHero";
+import { SiteCTA } from "@/components/layout/SiteCTA";
 import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
 import { TrackLookup } from "@/components/track/TrackLookup";
-import {
-  BarChart3,
-  Bell,
-  CheckCircle2,
-  Clock,
-  Code2,
-  FileSearch,
-  FileText,
-  Lock,
-  Map,
-  Package,
-  ShieldCheck,
-  Smartphone,
-  Truck,
-  Zap,
-} from "lucide-react";
-import Link from "next/link";
+import { Bell, Check, Code2, FileSearch, Lock, Package, ShieldCheck, Smartphone } from "lucide-react";
 
 export const metadata = {
   title: "Track Shipments | Premium 1 Logistics LTD",
@@ -30,17 +14,17 @@ export const metadata = {
 const roadmap = [
   {
     phase: "Phase 1 (Live)",
-    title: "Proactive Comms",
+    title: "Proactive updates",
     items: [
       "Milestone emails & WhatsApp digests",
-      "Named ops contact per file",
+      "Named operations contact per shipment",
       "Document close-out packs on request",
       "Exception alerts with options",
     ],
   },
   {
-    phase: "Phase 2 (Q2 2025)",
-    title: "Client Portal",
+    phase: "Phase 2 (planned)",
+    title: "Client portal",
     items: [
       "Secure web login with shipment list",
       "Download cleared docs & PODs",
@@ -49,8 +33,8 @@ const roadmap = [
     ],
   },
   {
-    phase: "Phase 3 (Q3 2025)",
-    title: "Enterprise Integrations",
+    phase: "Phase 3 (planned)",
+    title: "Enterprise integrations",
     items: [
       "API webhooks for your ERP/TMS",
       "Role-based access for finance vs. ops",
@@ -71,274 +55,168 @@ const features = [
     icon: FileSearch,
     title: "Document vault",
     description:
-      "Stop searching through email threads. Request a zipped close-out pack with all invoices, B/Ls, and declarations tied to your file.",
+      "Stop searching through email threads. Request a zipped close-out pack with all invoices, B/Ls, and declarations tied to your shipment.",
   },
   {
     icon: Smartphone,
     title: "WhatsApp ops line",
     description:
-      "A dedicated channel for active files. It keeps the noise down, response times up, and urgent issues visible to the right people immediately.",
+      "A dedicated channel for active shipments. It keeps the noise down, response times up, and urgent issues visible to the right people immediately.",
   },
   {
     icon: Package,
-    title: "Single file reference",
+    title: "One reference per shipment",
     description:
       "Every booking gets one master reference. Quote it on any communication, and our team instantly pulls the full context.",
   },
 ];
 
+const portalPlans = [
+  {
+    icon: Lock,
+    title: "Security first",
+    desc: "Verified company domains, optional 2FA, and strict role separation. Junior staff never see commercial rates. Penetration testing required before GA.",
+  },
+  {
+    icon: Code2,
+    title: "API webhooks",
+    desc: "Don't want to log in? We will push milestones directly into your ERP or TMS (SAP, Oracle, CargoWise) via secure webhooks.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Audit trails",
+    desc: "Immutable logs of every document uploaded, customs status change, and milestone achieved. Vital for compliance and insurance claims.",
+  },
+];
+
+const pill = "inline-flex self-start rounded-full border border-slate-300 px-4 py-1.5 text-[13px] text-slate-600";
+const h2 = "text-balance text-3xl font-medium leading-[1.15] tracking-[-0.02em] text-[var(--navy)] sm:text-[2.5rem]";
+
 export default function TrackPage() {
   return (
     <>
       <PageHero
-        eyebrow="Visibility"
-        title="Shipment visibility built for operators, not gimmicks"
+        eyebrow="Tracking"
+        title="Track your shipment"
         description="We are rolling out a secure client area for active account holders. Until your login is provisioned, you get the same milestones through email and WhatsApp with full audit trails."
         crumbs={[{ label: "Home", href: "/" }, { label: "Track" }]}
-        backgroundImage="/hero-logistics.webp"
+        backgroundImage="/hero/customs-gate.jpg"
       />
 
-      {/* ── Live Tracking Lookup ── */}
-      <section className="relative py-16 md:py-20 bg-[var(--surface-warm)]">
-        <Container>
-          <div className="max-w-3xl mx-auto">
-            <AnimateOnScroll animation="fade-up">
-              <h2 className="font-display font-bold text-2xl md:text-3xl text-[var(--ink)] text-center mb-2">
-                Track Your Shipment
-              </h2>
-              <p className="text-center text-slate-500 mb-8">
-                Enter your shipment or inquiry reference number to see real-time status and milestones.
-              </p>
-              <TrackLookup />
-            </AnimateOnScroll>
-          </div>
-        </Container>
+      {/* Lookup */}
+      <section className="mx-auto grid max-w-[1320px] items-start gap-8 px-6 py-12 sm:py-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div className="flex flex-col">
+          <span className={pill}>Shipment lookup</span>
+          <h2 className={`mt-6 max-w-md ${h2}`}>Enter your reference</h2>
+          <p className="mt-4 max-w-md text-base leading-7 text-slate-600 sm:text-lg">
+            Enter your shipment or inquiry reference number to see real-time status and milestones.
+          </p>
+        </div>
+        <TrackLookup />
       </section>
 
-      {/* ── Active Tracking Experience ── */}
-      <section className="relative py-24 md:py-32 bg-white overflow-hidden">
-        <Container>
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <AnimateOnScroll animation="fade-up" className="order-2 lg:order-1">
-              <div className="relative rounded-3xl border border-slate-200/80 bg-[var(--surface-warm)] p-2">
-                <div className="rounded-2xl overflow-hidden relative aspect-[4/3] bg-white border border-slate-100 shadow-inner">
-                  {/* Faux Interface */}
-                  <div className="absolute top-0 left-0 right-0 h-14 bg-slate-50 border-b border-slate-100 flex items-center px-6 justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-red-400" />
-                      <div className="w-3 h-3 rounded-full bg-amber-400" />
-                      <div className="w-3 h-3 rounded-full bg-green-400" />
-                    </div>
-                    <div className="h-6 w-32 bg-slate-200 rounded-md" />
-                  </div>
-                  <div className="p-8 pt-20">
-                    <div className="flex items-center justify-between mb-8">
-                      <div>
-                        <p className="text-xs font-bold uppercase text-[var(--accent)] tracking-wider">
-                          File Ref: P1-8842-GH
-                        </p>
-                        <h4 className="text-xl font-display font-bold text-[var(--ink)] mt-1">
-                          Shanghai → Tema DC
-                        </h4>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-sm font-semibold">
-                        In Transit
-                      </span>
-                    </div>
-
-                    <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-[var(--accent)] before:to-slate-200">
-                      {[
-                        { time: "Oct 12, 08:00", text: "Vessel departed origin", active: true },
-                        { time: "Oct 28, 14:30", text: "Arrived at Tema anchorage", active: true },
-                        { time: "Oct 30, 09:15", text: "Customs clearance initiated", active: true },
-                        { time: "Est. Nov 02", text: "Out for final delivery", active: false },
-                      ].map((step, i) => (
-                        <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-200 shrink-0 md:order-1 md:group-odd:-ml-5 md:group-even:-mr-5 shadow-sm z-10"
-                            style={{ backgroundColor: step.active ? 'var(--accent)' : '#e2e8f0' }}
-                          >
-                            {step.active ? <CheckCircle2 size={16} className="text-white" /> : <Clock size={14} className="text-slate-400" />}
-                          </div>
-                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
-                            <p className="font-semibold text-sm text-[var(--ink)]">{step.text}</p>
-                            <p className="text-xs text-slate-500 mt-1">{step.time}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll animation="slide-left" className="order-1 lg:order-2 lg:pl-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-4">
-                What you get today
-              </p>
-              <h2 className="font-display font-bold text-3xl md:text-4xl text-[var(--ink)] mb-6">
-                No more guessing where your cargo is.
-              </h2>
-              <p className="text-slate-600 leading-relaxed text-lg mb-8">
-                While our self-serve portal is in development, we run a tight, proactive ops desk. We don&apos;t wait for you to ask; we push the updates you need, when you need them.
-              </p>
-
-              <div className="space-y-6">
-                {features.map((feature, i) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div key={i} className="flex gap-4">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center">
-                        <Icon size={20} strokeWidth={2} />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-bold text-[var(--ink)] text-lg">
-                          {feature.title}
-                        </h4>
-                        <p className="text-slate-500 text-sm leading-relaxed mt-1">
-                          {feature.description}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </AnimateOnScroll>
-          </div>
-        </Container>
-      </section>
-
-      {/* ── Security & Integration (Dark) ── */}
-      <section className="relative py-24 md:py-32 bg-[var(--navy)] text-white overflow-hidden">
-        <div className="absolute inset-0 hero-grid opacity-10" aria-hidden />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[var(--accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden />
-
-        <Container className="relative">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <h2 className="font-display font-bold text-3xl md:text-4xl">
-              Enterprise-grade <span className="text-[var(--accent)]">data compliance</span>
-            </h2>
-            <p className="mt-4 text-white/60 leading-relaxed text-lg">
-              When the portal goes live, it will meet the strict security and integration requirements of global procurement teams.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Lock,
-                title: "Security First",
-                desc: "Verified company domains, optional 2FA, and strict role separation. Junior staff never see commercial rates. Penetration testing required before GA.",
-              },
-              {
-                icon: Code2,
-                title: "API Webhooks",
-                desc: "Don't want to log in? We will push milestones directly into your ERP or TMS (SAP, Oracle, CargoWise) via secure webhooks.",
-              },
-              {
-                icon: ShieldCheck,
-                title: "Audit Trails",
-                desc: "Immutable logs of every document uploaded, customs status change, and milestone achieved. Vital for compliance and insurance claims.",
-              },
-            ].map((item, i) => (
-              <AnimateOnScroll key={i} animation="fade-up" delay={i * 100}>
-                <div className="h-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center mb-6">
-                    <item.icon size={24} />
-                  </div>
-                  <h3 className="font-display font-bold text-xl mb-3">{item.title}</h3>
-                  <p className="text-white/60 text-sm leading-relaxed">{item.desc}</p>
-                </div>
-              </AnimateOnScroll>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* ── Roadmap ── */}
-      <section className="relative py-24 md:py-32 bg-white overflow-hidden">
-        <Container>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
-            <AnimateOnScroll animation="fade-up">
-              <div className="flex items-center gap-3 mb-4">
-                <BarChart3 className="text-[var(--accent)]" size={28} />
-                <h2 className="font-display font-bold text-3xl md:text-4xl text-[var(--ink)]">
-                  Visibility Roadmap
-                </h2>
-              </div>
-              <p className="text-slate-500 max-w-xl text-lg">
-                We are actively building the digital tools our high-volume clients have requested, phasing rollouts to ensure stability.
-              </p>
-            </AnimateOnScroll>
-            <AnimateOnScroll animation="fade-up" delay={100}>
-              <CTAButton variant="outline" href="/contact">
-                Request Beta Access
-              </CTAButton>
-            </AnimateOnScroll>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {roadmap.map((col, i) => {
-              const isActive = i === 0;
+      {/* What you get today */}
+      <section className="mx-auto grid max-w-[1320px] gap-10 px-6 py-12 sm:py-16 lg:grid-cols-2 lg:gap-16">
+        <AnimateOnScroll animation="fade-up" className="flex flex-col">
+          <span className={pill}>What you get today</span>
+          <h2 className={`mt-6 max-w-md ${h2}`}>No more guessing where your cargo is</h2>
+          <p className="mt-4 max-w-md text-base leading-7 text-slate-600 sm:text-lg">
+            While our self-serve portal is in development, our operations team keeps you informed. We don&apos;t wait for you to ask; we push the updates you need, when you need them.
+          </p>
+        </AnimateOnScroll>
+        <AnimateOnScroll animation="fade-up" delay={80}>
+          <ul className="border-b border-slate-200">
+            {features.map((feature) => {
+              const Icon = feature.icon;
               return (
-                <AnimateOnScroll key={col.phase} animation="fade-up" delay={i * 100}>
-                  <div
-                    className={`relative rounded-3xl border p-8 md:p-10 h-full transition-all duration-300 ${
-                      isActive
-                        ? "bg-[var(--surface-warm)] border-[var(--accent)]/30 shadow-lg shadow-[var(--accent)]/5"
-                        : "bg-white border-slate-200/80 hover:border-[var(--accent)]/30 hover:shadow-md"
-                    }`}
-                  >
-                    {isActive && (
-                      <div className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 bg-[var(--accent)] text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-sm">
-                        Current
-                      </div>
-                    )}
-                    <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${isActive ? 'text-[var(--accent)]' : 'text-slate-400'}`}>
-                      {col.phase}
-                    </p>
-                    <h3 className="font-display font-bold text-2xl text-[var(--ink)] mb-6">
-                      {col.title}
-                    </h3>
-                    <ul className="space-y-4">
-                      {col.items.map((item, idx) => (
-                        <li key={idx} className="flex items-start gap-3">
-                          <CheckCircle2
-                            size={18}
-                            className={`flex-shrink-0 mt-0.5 ${isActive ? 'text-[var(--accent)]' : 'text-slate-300'}`}
-                          />
-                          <span className={`text-sm ${isActive ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
-                            {item}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </AnimateOnScroll>
+                <li key={feature.title} className="flex items-start gap-4 border-t border-slate-200 py-6">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-[var(--navy)]">
+                    <Icon className="h-5 w-5" strokeWidth={1.6} />
+                  </span>
+                  <span>
+                    <span className="block text-lg font-medium text-[var(--navy)] sm:text-xl">{feature.title}</span>
+                    <span className="mt-1 block text-sm leading-6 text-slate-500">{feature.description}</span>
+                  </span>
+                </li>
               );
             })}
-          </div>
-        </Container>
+          </ul>
+        </AnimateOnScroll>
       </section>
 
-      {/* ── Bottom CTA ── */}
-      <Section background="muted" className="text-center">
-        <Container>
-          <h2 className="font-display font-bold text-3xl md:text-4xl text-[var(--ink)] max-w-2xl mx-auto">
-            Ready to experience reliable logistics?
+      {/* Planned for the portal (navy panel) */}
+      <section className="px-3 py-6 sm:px-5">
+        <div className="mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+          <span className="inline-flex rounded-full border border-white/30 px-4 py-1.5 text-[13px] text-white/85">Client portal</span>
+          <h2 className="mt-6 max-w-xl text-balance text-3xl font-medium leading-[1.15] tracking-[-0.02em] sm:text-[2.5rem]">
+            Security and integrations planned for the portal
           </h2>
-          <p className="mt-4 text-slate-600 max-w-lg mx-auto text-lg">
-            Let&apos;s start with a single shipment. Request a quote and see our proactive communication in action.
+          <p className="mt-4 max-w-xl text-base leading-7 text-white/75 sm:text-lg">
+            When the portal goes live, it will meet the strict security and integration requirements of global procurement teams.
           </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <CTAButton href="/quote" variant="primary" size="lg">
-              Get a quote
-            </CTAButton>
-            <CTAButton href="/contact" variant="outline" size="lg">
-              Contact sales
-            </CTAButton>
+          <ul className="mt-10 grid gap-4 md:grid-cols-3">
+            {portalPlans.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.title} className="rounded-3xl border border-white/15 bg-white/5 p-6">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white">
+                    <Icon className="h-5 w-5" strokeWidth={1.6} />
+                  </span>
+                  <h3 className="mt-5 text-xl font-medium tracking-[-0.01em]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/75">{item.desc}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* Roadmap */}
+      <section className="mx-auto max-w-[1320px] px-6 py-12 sm:py-16">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div className="flex flex-col">
+            <span className={pill}>Roadmap</span>
+            <h2 className={`mt-6 ${h2}`}>What we are building</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+              We are actively building the digital tools our high-volume clients have requested, phasing rollouts to ensure stability.
+            </p>
           </div>
-        </Container>
-      </Section>
+          <CTAButton variant="outline" href="/contact" className="self-start md:self-auto">
+            Request beta access
+          </CTAButton>
+        </div>
+
+        <ol className="mt-10 grid gap-4 lg:grid-cols-3">
+          {roadmap.map((col, i) => {
+            const isActive = i === 0;
+            return (
+              <li key={col.phase} className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-lg tabular-nums text-slate-400">0{i + 1}</span>
+                  <span
+                    className={`inline-flex rounded-full border px-3.5 py-1 text-[13px] ${
+                      isActive ? "border-[var(--navy)] bg-[var(--navy)] text-white" : "border-slate-300 text-slate-600"
+                    }`}
+                  >
+                    {col.phase}
+                  </span>
+                </div>
+                <h3 className="mt-5 text-xl font-medium tracking-[-0.01em] text-[var(--navy)] sm:text-2xl">{col.title}</h3>
+                <ul className="mt-5">
+                  {col.items.map((item) => (
+                    <li key={item} className="flex items-start gap-3 border-t border-slate-200 py-3 text-base leading-7 text-slate-600">
+                      <Check className={`mt-1.5 h-4 w-4 shrink-0 ${isActive ? "text-[var(--accent-ink)]" : "text-slate-400"}`} strokeWidth={2} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      <SiteCTA />
     </>
   );
 }

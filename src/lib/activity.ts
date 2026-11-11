@@ -10,11 +10,16 @@ export async function logActivity(opts: {
   try {
     const supabase = createServiceRoleClient();
     if (!supabase) return;
+    let actor = opts.actorEmail;
+    if (!actor) {
+      const { getSessionUser } = await import("@/lib/auth/session");
+      actor = (await getSessionUser().catch(() => null))?.email;
+    }
     await supabase.from("activity_log").insert({
       entity_type: opts.entityType,
       entity_id: opts.entityId || null,
       action: opts.action,
-      actor_email: opts.actorEmail || "system",
+      actor_email: actor || "system",
       metadata: opts.metadata || {},
     });
   } catch {

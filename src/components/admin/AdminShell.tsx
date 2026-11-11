@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import {
   ClipboardCheck,
   DollarSign,
@@ -56,8 +55,7 @@ export function AdminShell({
   const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    if (supabase) await supabase.auth.signOut();
+    await fetch("/api/admin/logout", { method: "POST" }).catch(() => null);
     router.push("/auth/admin");
     router.refresh();
   };
