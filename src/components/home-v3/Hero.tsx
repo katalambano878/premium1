@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Menu, X } from "lucide-react";
+import { ArrowUpRight, Menu, X } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -28,10 +28,6 @@ const modes = [
 const cards = [
   { title: "Sea freight", sub: "Full and part containers", meta: "Tema · Takoradi", image: "/service-freight.webp", href: "/services/freight-forwarding" },
   { title: "Customs clearance", sub: "Permits and duty estimates", meta: "Ready before arrival", image: "/hero/customs-gate.webp", href: "/services/customs-clearance" },
-  { title: "Inland delivery", sub: "Port to your warehouse", meta: "Across Ghana", image: "/hero-slide-1.webp", href: "/services/inland-transportation-hauls" },
-  { title: "Air freight", sub: "Time-critical cargo", meta: "Through Accra", image: "/hero-slide-2.webp", href: "/services/freight-forwarding" },
-  { title: "Door to door", sub: "Supplier to your door", meta: "One quote", image: "/hero/ship-agency.webp", href: "/services/door-to-door-delivery" },
-  { title: "Warehousing", sub: "Storage and distribution", meta: "Short or long term", image: "/hero/freight-dawn.webp", href: "/services/warehousing-distribution" },
 ];
 
 const slides = [
@@ -66,7 +62,6 @@ const SLIDE_MS = 7000;
 export function Hero() {
   const reduceMotion = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
-  const scroller = useRef<HTMLUListElement>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   // Slides 2 and 3 download only after the first photo has painted, so they
   // never compete with it on a slow connection.
@@ -97,9 +92,6 @@ export function Hero() {
 
   const active = slides[slideIndex];
 
-  const slide = (dir: 1 | -1) => {
-    scroller.current?.scrollBy({ left: dir * 316, behavior: reduceMotion ? "auto" : "smooth" });
-  };
 
   const fade = (delay: number) => ({
     initial: reduceMotion ? false : ({ opacity: 0 } as const),
@@ -140,7 +132,7 @@ export function Hero() {
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,20,40,0.72)_0%,rgba(8,20,40,0.3)_50%,rgba(8,20,40,0.08)_100%)]" />
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(8,20,40,0.45)_0%,transparent_26%,transparent_60%,rgba(8,20,40,0.5)_100%)]" />
 
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(8,20,40,0.35)_0%,rgba(8,20,40,0.05)_30%,rgba(8,20,40,0.55)_55%,rgba(8,20,40,0.92)_100%)] sm:hidden" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(8,20,40,0.35)_0%,rgba(8,20,40,0.55)_30%,rgba(8,20,40,0.7)_55%,rgba(8,20,40,0.8)_100%)] sm:hidden" />
 
         <header className="flex items-center justify-between gap-4 px-5 pt-5 sm:px-8 sm:pt-7">
           <Link href="/" className="flex items-center gap-3">
@@ -184,7 +176,7 @@ export function Hero() {
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col justify-end gap-10 px-5 pb-7 pt-12 sm:justify-between sm:px-8 sm:pb-8 sm:pt-16 lg:pt-20 [@media(min-height:860px)]:lg:pt-28">
+        <div className="flex flex-1 flex-col justify-center gap-10 px-5 pb-20 pt-10 sm:justify-between sm:px-8 sm:pb-8 sm:pt-16 lg:pt-20 [@media(min-height:860px)]:lg:pt-28">
           <motion.div {...rise(0)}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -256,48 +248,25 @@ export function Hero() {
               ))}
             </ul>
 
-            <div className="-mx-5 sm:-mx-8 lg:absolute lg:bottom-8 lg:right-8 lg:mx-0 lg:w-[19.5rem] xl:w-[39.5rem]">
-              <ul
-                ref={scroller}
-                className="grid snap-x snap-mandatory auto-cols-[18.75rem] grid-flow-col grid-rows-1 gap-3 overflow-x-auto px-5 [scrollbar-width:none] sm:px-8 lg:grid-rows-2 lg:px-0 [&::-webkit-scrollbar]:hidden"
-              >
-                {cards.map((c) => (
-                  <li key={c.title} className="snap-start">
-                    <Link
-                      href={c.href}
-                      className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-2.5 backdrop-blur-xl transition-colors duration-200 hover:bg-white/25"
-                    >
-                      <span className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
-                        <Image src={c.image} alt="" fill sizes="96px" className="object-cover" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-base font-medium leading-tight">{c.title}</span>
-                        <span className="mt-0.5 block text-[13px] text-white/75">{c.sub}</span>
-                        <span className="mt-3 block text-sm font-medium">{c.meta}</span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4 hidden justify-end gap-2 lg:flex">
-                <button
-                  type="button"
-                  aria-label="Previous services"
-                  onClick={() => slide(-1)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--navy)] transition-[background-color,transform] duration-200 hover:bg-[var(--accent)] active:scale-95"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="More services"
-                  onClick={() => slide(1)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--navy)] transition-[background-color,transform] duration-200 hover:bg-[var(--accent)] active:scale-95"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:absolute lg:bottom-8 lg:right-8 lg:w-[19.5rem] lg:grid-cols-1 xl:w-[39.5rem] xl:grid-cols-2">
+              {cards.map((c) => (
+                <li key={c.title}>
+                  <Link
+                    href={c.href}
+                    className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-2.5 backdrop-blur-xl transition-colors duration-200 hover:bg-white/25"
+                  >
+                    <span className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+                      <Image src={c.image} alt="" fill sizes="96px" className="object-cover" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-base font-medium leading-tight">{c.title}</span>
+                      <span className="mt-0.5 block text-[13px] text-white/75">{c.sub}</span>
+                      <span className="mt-3 block text-sm font-medium">{c.meta}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </motion.div>
         </div>
       </div>
