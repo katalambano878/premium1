@@ -7,8 +7,9 @@ const DEFAULT_URL = "postgresql:///premium1_test?host=/tmp";
 
 export default async function setup() {
   const url = process.env.TEST_DATABASE_URL || DEFAULT_URL;
-  const parsed = new URL(url.replace(/^postgres(ql)?:\/\/\/?/, "postgresql://x/"));
-  const dbName = parsed.pathname.replace(/^\//, "") || "premium1_test";
+  // Database name = the last path segment, before any ?query (works for
+  // postgresql://user:pass@host:5432/db and postgresql:///db?host=/tmp alike).
+  const dbName = url.split("?")[0].split("/").pop() || "";
   if (!/^[a-z0-9_]+$/.test(dbName) || !dbName.includes("test")) {
     throw new Error(`Refusing to reset "${dbName}": the test database name must contain "test".`);
   }
