@@ -33,7 +33,7 @@ export function PageHero({ eyebrow, title, description, crumbs, variant = "dark"
       >
         {backgroundImage ? (
           <>
-            <Image src={backgroundImage} alt="" fill priority sizes="100vw" quality={82} className="-z-10 object-cover" />
+            <Image src={backgroundImage} alt="" fill priority sizes="100vw" quality={70} className="-z-10 object-cover" />
             <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,20,40,0.82)_0%,rgba(8,20,40,0.5)_55%,rgba(8,20,40,0.2)_100%)]" aria-hidden />
             <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(8,20,40,0.25)_0%,transparent_40%,rgba(8,20,40,0.55)_100%)]" aria-hidden />
           </>

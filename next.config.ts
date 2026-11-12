@@ -12,9 +12,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   images: {
-    // Next resizes every photo to the size each screen needs and serves WebP.
-    formats: ["image/webp"],
-    qualities: [75, 80, 82, 85, 90],
+    // Next resizes every photo to the size each screen needs and serves AVIF (WebP fallback).
+    formats: ["image/avif", "image/webp"],
+    qualities: [55, 70, 75, 80, 85, 90],
     deviceSizes: [640, 828, 1080, 1280, 1600, 1920],
     imageSizes: [64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30,

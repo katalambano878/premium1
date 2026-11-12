@@ -199,11 +199,13 @@ export default function HowWeOperatePage() {
             {systems.map((sys, i) => (
               <li key={sys.title}>
                 <Reveal delay={i * 80} className="h-full">
-                  <div className="flex h-full flex-col rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-6 sm:p-8">
-                    <p className="text-4xl font-medium tracking-[-0.02em] sm:text-5xl">{sys.stat}</p>
-                    <p className="mt-2 text-sm text-white/75">{sys.statLabel}</p>
-                    <h3 className="mt-8 border-t border-white/15 pt-6 text-xl font-medium tracking-[-0.01em]">{sys.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/75">{sys.description}</p>
+                  <div className="flex h-full flex-col rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-xl sm:p-6">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-2xl font-medium tracking-[-0.02em] text-[var(--accent)] sm:text-3xl">{sys.stat}</p>
+                      <p className="text-[13px] text-white/70">{sys.statLabel}</p>
+                    </div>
+                    <h3 className="mt-5 border-t border-white/15 pt-4 text-lg font-medium tracking-[-0.01em]">{sys.title}</h3>
+                    <p className="mt-1.5 text-sm leading-6 text-white/75">{sys.description}</p>
                   </div>
                 </Reveal>
               </li>

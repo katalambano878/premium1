@@ -68,6 +68,26 @@ export function Hero() {
   const [menuOpen, setMenuOpen] = useState(false);
   const scroller = useRef<HTMLUListElement>(null);
   const [slideIndex, setSlideIndex] = useState(0);
+  // Slides 2 and 3 download only after the first photo has painted, so they
+  // never compete with it on a slow connection.
+  const [restReady, setRestReady] = useState(false);
+
+  useEffect(() => {
+    const start = () => window.setTimeout(() => setRestReady(true), 1500);
+    if (document.readyState === "complete") {
+      const t = start();
+      return () => window.clearTimeout(t);
+    }
+    let t: number | undefined;
+    const onLoad = () => {
+      t = start();
+    };
+    window.addEventListener("load", onLoad, { once: true });
+    return () => {
+      window.removeEventListener("load", onLoad);
+      if (t) window.clearTimeout(t);
+    };
+  }, []);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -102,17 +122,19 @@ export function Hero() {
             aria-hidden={i !== slideIndex}
             className={`absolute inset-0 -z-10 transition-opacity duration-[1400ms] ease-out ${i === slideIndex ? "opacity-100" : "opacity-0"}`}
           >
+            {i === 0 || restReady || i === slideIndex ? (
             <Image
               src={img.src}
               alt={i === slideIndex ? img.alt : ""}
               fill
               priority={i === 0}
               sizes="100vw"
-              quality={85}
+              quality={70}
               className={`object-cover ${img.position} transition-transform duration-[7000ms] ease-linear ${
                 i === slideIndex && !reduceMotion ? "scale-105" : "scale-100"
               }`}
             />
+            ) : null}
           </div>
         ))}
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,20,40,0.72)_0%,rgba(8,20,40,0.3)_50%,rgba(8,20,40,0.08)_100%)]" />
