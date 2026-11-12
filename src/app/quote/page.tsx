@@ -399,40 +399,72 @@ export default function QuotePage() {
         {/* Side panel */}
         <aside className="space-y-6 lg:sticky lg:top-28">
           <div className="rounded-3xl bg-[var(--navy)] p-6 text-white sm:p-8">
-            <h2 className="text-xl font-medium tracking-[-0.01em]">Have these ready</h2>
-            <ol className="mt-5 space-y-5">
-              {haveReady.map((item, i) => (
-                <li key={item.title} className="flex gap-4">
-                  <span className="text-base tabular-nums text-white/70">0{i + 1}</span>
-                  <span>
-                    <span className="block text-base font-medium">{item.title}</span>
-                    <span className="block text-sm leading-6 text-white/75">{item.body}</span>
-                  </span>
-                </li>
-              ))}
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 className="text-xl font-medium tracking-[-0.01em]">Have these ready</h2>
+              <span className="text-sm tabular-nums text-white/60">{step + 1} of {STEPS.length}</span>
+            </div>
+            <ol className="mt-5 space-y-1.5">
+              {haveReady.map((item, i) => {
+                const on = i === step;
+                const done = i < step;
+                return (
+                  <li key={item.title}>
+                    <button
+                      type="button"
+                      onClick={() => setStep(i)}
+                      aria-current={on ? "step" : undefined}
+                      className={`grid w-full grid-cols-[2rem_1fr] gap-3 rounded-2xl px-3 py-3 text-left transition-colors duration-300 ${
+                        on ? "bg-white/10" : "hover:bg-white/5"
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors duration-300 ${
+                          done ? "bg-[var(--accent)] text-[var(--navy)]" : on ? "bg-white text-[var(--navy)]" : "border border-white/25 text-white/60"
+                        }`}
+                      >
+                        {done ? <Check className="h-4 w-4" strokeWidth={2.2} aria-label="Done" /> : i + 1}
+                      </span>
+                      <span className="min-w-0 self-center">
+                        <span className={`block text-base font-medium transition-colors duration-300 ${on || done ? "text-white" : "text-white/65"}`}>
+                          {item.title}
+                        </span>
+                        <span className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${on ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                          <span className="overflow-hidden">
+                            <span className="block pt-1 text-sm leading-6 text-white/75">{item.body}</span>
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ol>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
             <h2 className="text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">What happens next</h2>
-            <ol className="mt-3">
+            <ol className="relative mt-5 space-y-5 before:absolute before:bottom-3 before:left-[0.9375rem] before:top-3 before:w-px before:bg-slate-200">
               {nextSteps.map((item, i) => (
-                <li key={item} className="grid grid-cols-[2.25rem_1fr] items-baseline gap-2 border-t border-slate-200 py-4 first:border-t-0">
-                  <span className="text-base tabular-nums text-slate-400">0{i + 1}</span>
-                  <span className="text-base leading-7 text-slate-600">{item}</span>
+                <li key={item} className="relative grid grid-cols-[2rem_1fr] gap-3">
+                  <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-sm tabular-nums text-[var(--navy)]">
+                    {i + 1}
+                  </span>
+                  <span className="self-center text-[15px] leading-6 text-slate-600">{item}</span>
                 </li>
               ))}
             </ol>
 
-            <h2 className="mt-6 border-t border-slate-200 pt-6 text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">You will get</h2>
-            <ul className="mt-4 space-y-3">
-              {benefits.map((b) => (
-                <li key={b} className="flex gap-3 text-base leading-7 text-slate-600">
-                  <Check className="mt-1.5 h-4 w-4 shrink-0 text-[var(--accent-ink)]" strokeWidth={2} />
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6 border-t border-slate-200 pt-6">
+              <h3 className="text-sm font-medium text-[var(--navy)]">You will get</h3>
+              <ul className="mt-3 space-y-2">
+                {benefits.map((b) => (
+                  <li key={b} className="flex gap-2.5 text-sm leading-6 text-slate-600">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-[var(--accent-ink)]" strokeWidth={2} />
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             <a
               href={SITE_SETTINGS.social.whatsapp}
