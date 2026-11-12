@@ -1,44 +1,63 @@
-import { CheckCircle2, Clock, MessageSquare, Truck } from "lucide-react";
+import { CircleDot, MessageSquare, PackagePlus, Truck, type LucideIcon } from "lucide-react";
+import { EmptyState, formatDateTime, statusLabel, timeAgo } from "./ui";
 
-interface Event {
+export interface ShipmentEvent {
   id: string;
   event_type: string;
   message: string | null;
   created_at: string;
-  created_by: string | null;
+  /** Name of the staff member who posted it, when known. */
+  author: string | null;
 }
 
-const EVENT_ICONS: Record<string, React.ElementType> = {
-  status_change: Truck,
-  created: CheckCircle2,
-  note: MessageSquare,
+const EVENT: Record<string, { icon: LucideIcon; label: string }> = {
+  status_change: { icon: Truck, label: "Status change" },
+  created: { icon: PackagePlus, label: "Shipment created" },
+  update: { icon: MessageSquare, label: "Update for the client" },
+  note: { icon: MessageSquare, label: "Internal note" },
 };
 
-export function ShipmentTimeline({ events }: { events: Event[] }) {
-  if (!events.length) return <p className="text-sm text-slate-400">No events recorded.</p>;
+/** Status changes are stored as "Status changed to in transit"; show the proper status name. */
+function eventText(ev: ShipmentEvent) {
+  const m = ev.event_type === "status_change" ? /^Status changed to (.+)$/i.exec(ev.message || "") : null;
+  if (m) return `Status changed to ${statusLabel(m[1].trim().replace(/ /g, "_"))}`;
+  return ev.message || EVENT[ev.event_type]?.label || statusLabel(ev.event_type);
+}
+
+export function ShipmentTimeline({ events }: { events: ShipmentEvent[] }) {
+  if (!events.length) {
+    return (
+      <EmptyState
+        compact
+        icon={MessageSquare}
+        title="No updates yet"
+        description="Status changes and the updates you post will be listed here, newest first."
+      />
+    );
+  }
 
   return (
-    <div className="space-y-0">
+    <ol className="space-y-0">
       {events.map((ev, i) => {
-        const Icon = EVENT_ICONS[ev.event_type] || Clock;
-        const isLast = i === events.length - 1;
+        const Icon = EVENT[ev.event_type]?.icon || CircleDot;
+        const last = i === events.length - 1;
         return (
-          <div key={ev.id} className="flex gap-3">
+          <li key={ev.id} className="flex gap-3">
             <div className="flex flex-col items-center">
-              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                <Icon size={14} className="text-slate-500" />
-              </div>
-              {!isLast && <div className="w-px flex-1 bg-slate-200 my-1" />}
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500">
+                <Icon size={16} strokeWidth={1.7} aria-hidden />
+              </span>
+              {!last ? <span className="my-1 w-px flex-1 bg-slate-200" aria-hidden /> : null}
             </div>
-            <div className="pb-4 pt-1">
-              <p className="text-sm text-slate-700">{ev.message || ev.event_type.replace(/_/g, " ")}</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {new Date(ev.created_at).toLocaleString()}
+            <div className={last ? "min-w-0 pt-1.5" : "min-w-0 pb-5 pt-1.5"}>
+              <p className="whitespace-pre-wrap break-words text-[15px] leading-6 text-[var(--navy)]">{eventText(ev)}</p>
+              <p className="mt-0.5 text-[13px] text-slate-500">
+                {ev.author || "System"} · <time dateTime={ev.created_at} title={formatDateTime(ev.created_at)}>{timeAgo(ev.created_at)}</time>
               </p>
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

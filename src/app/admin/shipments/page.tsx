@@ -1,142 +1,216 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, SearchX, Ship } from "lucide-react";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db/pool";
+import {
+  ButtonLink,
+  Card,
+  EmptyState,
+  FilterTabs,
+  PageHeader,
+  StatusBadge,
+  TableCard,
+  cx,
+  formatDate,
+  rowLinkClass,
+  statusLabel,
+  tableClass,
+  tdClass,
+  thClass,
+  timeAgo,
+  trClass,
+} from "@/components/admin/ui";
+import { DbOffline, SearchForm } from "@/components/admin/shipments/parts";
+import { SHIPMENT_STAGES, cleanQuery, likePattern, listHref, methodLabel } from "@/components/admin/shipments/format";
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  booked: "bg-blue-100 text-blue-700",
-  in_transit: "bg-amber-100 text-amber-700",
-  arrived: "bg-cyan-100 text-cyan-700",
-  clearing: "bg-purple-100 text-purple-700",
-  out_for_delivery: "bg-orange-100 text-orange-700",
-  delivered: "bg-emerald-100 text-emerald-700",
+type Row = {
+  id: string;
+  shipment_no: string;
+  origin: string;
+  destination: string;
+  method: string;
+  status: string;
+  created_at: string;
+  eta: string | null;
+  client_id: string;
+  company_name: string;
+  assignee: string | null;
 };
 
-export default async function ShipmentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ status?: string }>;
-}) {
+const LIMIT = 200;
+const BASE = "/admin/shipments";
+const SEARCH_WHERE =
+  "($1::text IS NULL OR s.shipment_no ILIKE $1 OR s.origin ILIKE $1 OR s.destination ILIKE $1 OR c.company_name ILIKE $1)";
+
+export default async function ShipmentsPage({ searchParams }: { searchParams: Promise<{ status?: string | string[]; q?: string | string[] }> }) {
   const params = await searchParams;
-  const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
+  const q = cleanQuery(params.q);
+  const status = SHIPMENT_STAGES.find((s) => s === params.status) || null;
 
-  let query = supabase
-    .from("shipments")
-    .select("id, shipment_no, origin, destination, status, method, vessel_name, created_at, clients(company_name)")
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const header = (
+    <PageHeader
+      title="Shipments"
+      description="Every job you are moving for clients, from booking to delivery."
+      actions={
+        <ButtonLink href={`${BASE}/new`}>
+          <Plus size={16} /> New shipment
+        </ButtonLink>
+      }
+    />
+  );
 
-  if (params.status) query = query.eq("status", params.status);
+  if (!createServiceRoleClient()) {
+    return (
+      <>
+        {header}
+        <DbOffline />
+      </>
+    );
+  }
 
-  const { data: shipments } = await query;
+  const pattern = q ? likePattern(q) : null;
+  const [{ rows }, { rows: counts }, { rows: totals }] = await Promise.all([
+    query<Row>(
+      `SELECT s.id, s.shipment_no, s.origin, s.destination, s.method, s.status, s.created_at,
+              COALESCE(NULLIF(s.key_dates->>'arrival', ''), to_char(s.estimated_arrival, 'YYYY-MM-DD')) AS eta,
+              c.id AS client_id, c.company_name, u.full_name AS assignee
+         FROM shipments s
+         JOIN clients c ON c.id = s.client_id
+         LEFT JOIN staff_users u ON u.id = s.assigned_to
+        WHERE ${SEARCH_WHERE} AND ($2::text IS NULL OR s.status = $2)
+        ORDER BY s.created_at DESC
+        LIMIT ${LIMIT}`,
+      [pattern, status],
+    ),
+    query<{ status: string; n: number }>(
+      `SELECT s.status, count(*)::int AS n
+         FROM shipments s JOIN clients c ON c.id = s.client_id
+        WHERE ${SEARCH_WHERE}
+        GROUP BY s.status`,
+      [pattern],
+    ),
+    query<{ n: number }>("SELECT count(*)::int AS n FROM shipments"),
+  ]);
 
-  const statusCounts: Record<string, number> = {};
-  (shipments || []).forEach((s) => {
-    statusCounts[s.status] = (statusCounts[s.status] || 0) + 1;
-  });
-
-  const stages = ["draft", "booked", "in_transit", "arrived", "clearing", "out_for_delivery", "delivered"];
+  const countOf = (s: string) => counts.find((c) => c.status === s)?.n || 0;
+  const matching = counts.reduce((sum, c) => sum + c.n, 0);
+  const total = totals[0]?.n || 0;
+  const filtered = Boolean(q || status);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Shipment Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{shipments?.length || 0} shipments</p>
-        </div>
-        <Link
-          href="/admin/shipments/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors shadow-sm"
-        >
-          <Plus size={16} /> New Shipment
-        </Link>
-      </div>
+    <>
+      {header}
 
-      {/* Status Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <Link
-          href="/admin/shipments"
-          className={`px-4 py-2.5 rounded-xl border text-sm font-semibold whitespace-nowrap transition-all ${
-            !params.status ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-          }`}
-        >
-          All
-        </Link>
-        {stages.map((status) => (
-          <Link
-            key={status}
-            href={params.status === status ? "/admin/shipments" : `/admin/shipments?status=${status}`}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold whitespace-nowrap transition-all ${
-              params.status === status
-                ? STATUS_COLORS[status]
-                : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-            }`}
-          >
-            <span className="capitalize">{status.replace(/_/g, " ")}</span>
-          </Link>
-        ))}
-      </div>
+      {total === 0 ? (
+        <Card padded={false}>
+          <EmptyState
+            icon={Ship}
+            title="No shipments yet"
+            description="A shipment is one job for a client: where the cargo is coming from, where it is going, and how far along it is. Create one here, or convert a won enquiry."
+            action={
+              <ButtonLink href={`${BASE}/new`}>
+                <Plus size={16} /> New shipment
+              </ButtonLink>
+            }
+          />
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <FilterTabs
+              items={[
+                { label: "All", href: listHref(BASE, { q }), count: matching, active: !status },
+                ...SHIPMENT_STAGES.map((s) => ({
+                  label: statusLabel(s),
+                  href: listHref(BASE, { status: s, q }),
+                  count: countOf(s),
+                  active: status === s,
+                })),
+              ]}
+            />
+            <SearchForm
+              action={BASE}
+              q={q}
+              label="Search shipments"
+              placeholder="Shipment no., place or client"
+              hidden={{ status }}
+            />
+          </div>
 
-      {/* Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Shipment</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Route</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden md:table-cell">Client</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden md:table-cell">Method</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden sm:table-cell">Date</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {(shipments || []).length > 0 ? (
-                (shipments || []).map((s) => {
-                  const client = Array.isArray(s.clients) ? s.clients[0] : s.clients;
-                  return (
-                    <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/shipments/${s.id}`} className="font-semibold text-slate-800 hover:text-[var(--accent)]">
+          {rows.length === 0 ? (
+            <Card padded={false}>
+              <EmptyState
+                icon={SearchX}
+                title="No shipments match"
+                description={
+                  q
+                    ? `Nothing matches "${q}"${status ? ` with the status ${statusLabel(status)}` : ""}. Check the spelling or clear the filters.`
+                    : `No shipments have the status ${statusLabel(status)} right now.`
+                }
+                action={
+                  <ButtonLink href={BASE} variant="secondary">
+                    Clear filters
+                  </ButtonLink>
+                }
+              />
+            </Card>
+          ) : (
+            <TableCard
+              footer={
+                rows.length >= LIMIT
+                  ? `Showing the ${LIMIT} newest shipments. Search or pick a status to narrow the list.`
+                  : `${rows.length} ${rows.length === 1 ? "shipment" : "shipments"}${filtered ? " match" : ""}`
+              }
+            >
+              <table className={cx(tableClass, "min-w-[900px]")}>
+                <thead>
+                  <tr>
+                    <th className={thClass}>Shipment no.</th>
+                    <th className={thClass}>Client</th>
+                    <th className={thClass}>Route</th>
+                    <th className={thClass}>Method</th>
+                    <th className={thClass}>Status</th>
+                    <th className={thClass}>Assigned to</th>
+                    <th className={thClass}>ETA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((s) => (
+                    <tr key={s.id} className={trClass}>
+                      <td className={tdClass}>
+                        <Link href={`${BASE}/${s.id}`} className={rowLinkClass}>
                           {s.shipment_no}
                         </Link>
-                        {s.vessel_name && <p className="text-[11px] text-slate-400">{s.vessel_name}</p>}
+                        <p className="mt-0.5 text-[13px] text-slate-500">Created {timeAgo(s.created_at)}</p>
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="text-slate-700">{s.origin} → {s.destination}</p>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{client?.company_name || "—"}</td>
-                      <td className="px-4 py-3 text-slate-500 capitalize hidden md:table-cell">{s.method}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${STATUS_COLORS[s.status] || "bg-slate-100 text-slate-600"}`}>
-                          {s.status?.replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400 hidden sm:table-cell">
-                        {new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/shipments/${s.id}`} className="text-slate-400 group-hover:text-[var(--accent)]">
-                          <ArrowUpRight size={16} />
+                      <td className={tdClass}>
+                        <Link href={`/admin/clients/${s.client_id}`} className="underline-offset-4 hover:text-[var(--navy)] hover:underline">
+                          {s.company_name}
                         </Link>
                       </td>
+                      <td className={tdClass}>
+                        <span className="inline-flex flex-wrap items-center gap-x-1.5">
+                          {s.origin}
+                          <ArrowRight size={14} className="shrink-0 text-slate-400" aria-label="to" />
+                          {s.destination}
+                        </span>
+                      </td>
+                      <td className={tdClass}>{methodLabel(s.method)}</td>
+                      <td className={tdClass}>
+                        <StatusBadge status={s.status} />
+                      </td>
+                      <td className={tdClass}>{s.assignee || <span className="text-slate-400">Unassigned</span>}</td>
+                      <td className={cx(tdClass, "whitespace-nowrap")}>
+                        {s.eta ? formatDate(s.eta) : <span className="text-slate-400">Not set</span>}
+                      </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                    No shipments found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  ))}
+                </tbody>
+              </table>
+            </TableCard>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

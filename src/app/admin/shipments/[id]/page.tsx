@@ -1,350 +1,436 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Anchor, Box, FileIcon, MapPin, Ship } from "lucide-react";
+import { ArrowRight, ClipboardCheck, Download, FileText, Mail, Plus, Receipt } from "lucide-react";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db/pool";
+import { money } from "@/lib/finance";
+import {
+  ButtonLink,
+  Callout,
+  Card,
+  CardHeader,
+  DetailList,
+  EmptyState,
+  PageHeader,
+  StatusBadge,
+  buttonClass,
+  formatDate,
+  formatDateTime,
+} from "@/components/admin/ui";
 import { StatusSelect } from "@/components/admin/StatusSelect";
 import { AssignSelect } from "@/components/admin/AssignSelect";
 import { NoteForm } from "@/components/admin/NoteForm";
-import { ShipmentTimeline } from "@/components/admin/ShipmentTimeline";
+import { ShipmentTimeline, type ShipmentEvent } from "@/components/admin/ShipmentTimeline";
 import { KeyDatesEditor } from "@/components/admin/KeyDatesEditor";
 import { NotesEditor } from "@/components/admin/NotesEditor";
 import { ShipmentTabs } from "@/components/admin/ShipmentTabs";
-import {
-  updateShipmentStatus,
-  assignShipment,
-  addShipmentEvent,
-  updateKeyDates,
-  updateShipmentNotes,
-} from "../actions";
+import { DocumentUpload } from "@/components/admin/DocumentUpload";
+import { CopyTrackingLink } from "@/components/admin/shipments/CopyTrackingLink";
+import { ShipmentProgress } from "@/components/admin/shipments/ShipmentProgress";
+import { DbOffline } from "@/components/admin/shipments/parts";
+import { SHIPMENT_STAGES, isUuid, methodLabel } from "@/components/admin/shipments/format";
+import { docTypeLabel, fileNameFromUrl } from "@/components/admin/documents/doc-types";
+import { addShipmentEvent, assignShipment, updateKeyDates, updateShipmentNotes, updateShipmentStatus } from "../actions";
 
-const STATUSES = ["draft", "booked", "in_transit", "arrived", "clearing", "out_for_delivery", "delivered"];
+type Shipment = {
+  id: string;
+  shipment_no: string;
+  inquiry_id: string | null;
+  inquiry_no: string | null;
+  client_id: string;
+  company_name: string;
+  contact_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  method: string;
+  origin: string;
+  destination: string;
+  cargo: unknown;
+  status: string;
+  assigned_to: string | null;
+  key_dates: unknown;
+  cost_notes: string | null;
+  service_notes: string | null;
+  vessel_name: string | null;
+  voyage_no: string | null;
+  bl_no: string | null;
+  container_nos: unknown;
+  estimated_departure: string | null;
+  estimated_arrival: string | null;
+  actual_departure: string | null;
+  actual_arrival: string | null;
+  total_cost: number | null;
+  total_revenue: number | null;
+  currency: string | null;
+  created_at: string;
+};
+type Doc = { id: string; doc_type: string; file_url: string; created_at: string };
+type Declaration = { id: string; declaration_no: string | null; status: string; duty_amount: number | null; tax_amount: number | null };
+type Invoice = { id: string; invoice_no: string; total: number | null; currency: string | null; status: string; due_date: string | null };
+
+const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const fieldLabel = (key: string) => key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+const sectionTitle = "text-base font-medium text-[var(--navy)]";
+const textLink = "font-medium text-[var(--accent-ink)] underline-offset-4 hover:underline";
 
 export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="p-8 text-slate-500">Database not configured.</p>;
+  if (!isUuid(id)) notFound();
+  if (!createServiceRoleClient()) return <DbOffline />;
 
-  const { data: shipment } = await supabase
-    .from("shipments")
-    .select("*, clients(id, company_name, contact_name, email, phone)")
-    .eq("id", id)
-    .single();
-
+  const { rows: found } = await query<Shipment>(
+    `SELECT s.*, c.company_name, c.contact_name, c.email AS client_email, c.phone AS client_phone, i.inquiry_no
+       FROM shipments s
+       JOIN clients c ON c.id = s.client_id
+       LEFT JOIN inquiries i ON i.id = s.inquiry_id
+      WHERE s.id = $1`,
+    [id],
+  );
+  const shipment = found[0];
   if (!shipment) notFound();
 
-  const [{ data: events }, { data: docs }, { data: staff }, { data: customs }, { data: invoices }] = await Promise.all([
-    supabase.from("shipment_events").select("*").eq("shipment_id", id).order("created_at", { ascending: false }),
-    supabase.from("shipment_documents").select("*").eq("shipment_id", id).order("created_at", { ascending: false }),
-    supabase.from("staff_users").select("id, full_name").eq("is_active", true).order("full_name"),
-    supabase.from("customs_declarations").select("id, declaration_no, status, duty_amount, tax_amount").eq("shipment_id", id),
-    supabase.from("invoices").select("id, invoice_no, total, status").eq("shipment_id", id),
+  const [{ rows: events }, { rows: docs }, { rows: staff }, { rows: customs }, { rows: invoices }] = await Promise.all([
+    query<ShipmentEvent>(
+      `SELECT e.id, e.event_type, e.message, e.created_at, u.full_name AS author
+         FROM shipment_events e LEFT JOIN staff_users u ON u.id = e.created_by
+        WHERE e.shipment_id = $1 ORDER BY e.created_at DESC`,
+      [id],
+    ),
+    query<Doc>("SELECT id, doc_type, file_url, created_at FROM shipment_documents WHERE shipment_id = $1 ORDER BY created_at DESC", [id]),
+    query<{ id: string; full_name: string }>("SELECT id, full_name FROM staff_users WHERE is_active = true ORDER BY full_name"),
+    query<Declaration>(
+      "SELECT id, declaration_no, status, duty_amount, tax_amount FROM customs_declarations WHERE shipment_id = $1 ORDER BY created_at DESC",
+      [id],
+    ),
+    query<Invoice>("SELECT id, invoice_no, total, currency, status, due_date FROM invoices WHERE shipment_id = $1 ORDER BY created_at DESC", [id]),
   ]);
 
-  const keyDates = (shipment.key_dates && typeof shipment.key_dates === "object")
-    ? shipment.key_dates as Record<string, string>
-    : {};
-  const client = shipment.clients as Record<string, string> | null;
-  const cargo = (shipment.cargo && typeof shipment.cargo === "object") ? shipment.cargo as Record<string, string> : {};
-  const containers = Array.isArray(shipment.container_nos) ? shipment.container_nos : [];
-  const currentStageIdx = STATUSES.indexOf(shipment.status);
+  const currency = shipment.currency || "USD";
+  const keyDates: Record<string, string> = {};
+  for (const [k, v] of Object.entries(asRecord(shipment.key_dates))) if (typeof v === "string") keyDates[k] = v;
+  const cargo = Object.entries(asRecord(shipment.cargo)).filter(([, v]) => (typeof v === "string" && v.trim()) || typeof v === "number");
+  const containers = Array.isArray(shipment.container_nos) ? shipment.container_nos.filter((c): c is string => typeof c === "string") : [];
+  const cost = Number(shipment.total_cost || 0);
+  const revenue = Number(shipment.total_revenue || 0);
+  const schedule = [
+    { label: "Estimated departure", value: shipment.estimated_departure },
+    { label: "Actual departure", value: shipment.actual_departure },
+    { label: "Estimated arrival", value: shipment.estimated_arrival },
+    { label: "Actual arrival", value: shipment.actual_arrival },
+  ].filter((d) => d.value);
+  const contact = [shipment.contact_name, shipment.client_phone, shipment.client_email].filter(Boolean).join(" · ");
+
+  const summary: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Client",
+      value: (
+        <>
+          <Link href={`/admin/clients/${shipment.client_id}`} className={textLink}>
+            {shipment.company_name}
+          </Link>
+          {contact ? <span className="mt-0.5 block text-sm font-normal text-slate-500">{contact}</span> : null}
+        </>
+      ),
+    },
+    {
+      label: "Route",
+      value: (
+        <span className="inline-flex flex-wrap items-center gap-x-1.5">
+          {shipment.origin}
+          <ArrowRight size={15} className="shrink-0 text-slate-400" aria-label="to" />
+          {shipment.destination}
+        </span>
+      ),
+    },
+    { label: "Method", value: methodLabel(shipment.method) },
+    {
+      label: "Cargo",
+      value: cargo.length ? (
+        <ul className="space-y-0.5">
+          {cargo.map(([k, v]) => (
+            <li key={k}>
+              <span className="font-normal text-slate-500">{fieldLabel(k)}:</span> {String(v)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className="font-normal text-slate-500">No cargo details recorded</span>
+      ),
+    },
+    ...(shipment.vessel_name
+      ? [{ label: "Vessel", value: `${shipment.vessel_name}${shipment.voyage_no ? `, voyage ${shipment.voyage_no}` : ""}` }]
+      : []),
+    ...(shipment.bl_no ? [{ label: "Bill of lading no.", value: shipment.bl_no }] : []),
+    ...(containers.length ? [{ label: containers.length === 1 ? "Container" : "Containers", value: containers.join(", ") }] : []),
+    ...(shipment.inquiry_id
+      ? [
+          {
+            label: "Linked enquiry",
+            value: (
+              <Link href={`/admin/inquiries/${shipment.inquiry_id}`} className={textLink}>
+                {shipment.inquiry_no || "View enquiry"}
+              </Link>
+            ),
+          },
+        ]
+      : []),
+    { label: "Created", value: formatDateTime(shipment.created_at) },
+  ];
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <Link href="/admin/shipments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
-        <ArrowLeft size={16} /> Back to shipments
-      </Link>
+    <div className="max-w-5xl">
+      <PageHeader
+        title={shipment.shipment_no}
+        badge={<StatusBadge status={shipment.status} />}
+        description={`${shipment.origin} to ${shipment.destination} for ${shipment.company_name}`}
+        back={{ href: "/admin/shipments", label: "Shipments" }}
+        actions={
+          <>
+            <div className="flex items-center gap-2 text-[13px] text-slate-500">
+              <span aria-hidden>Status</span>
+              <StatusSelect currentStatus={shipment.status} statuses={SHIPMENT_STAGES} action={updateShipmentStatus} entityId={id} />
+            </div>
+            <div className="flex items-center gap-2 text-[13px] text-slate-500">
+              <span aria-hidden>Assigned to</span>
+              <AssignSelect currentAssignee={shipment.assigned_to} staff={staff} action={assignShipment} entityId={id} />
+            </div>
+            <CopyTrackingLink shipmentNo={shipment.shipment_no} />
+          </>
+        }
+      />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{shipment.shipment_no}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {shipment.origin} → {shipment.destination}
-            {shipment.vessel_name && ` · ${shipment.vessel_name}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <StatusSelect
-            currentStatus={shipment.status}
-            statuses={STATUSES}
-            action={updateShipmentStatus}
-            entityId={id}
-          />
-        </div>
-      </div>
+      <div className="space-y-5">
+        <Card>
+          <h2 className={`${sectionTitle} mb-5`}>Progress</h2>
+          <ShipmentProgress status={shipment.status} />
+        </Card>
 
-      {/* Milestone Tracker */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {STATUSES.map((stage, idx) => {
-            const done = idx <= currentStageIdx;
-            const current = idx === currentStageIdx;
-            return (
-              <div key={stage} className="flex items-center flex-1 min-w-[90px]">
-                <div className="flex flex-col items-center flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    done
-                      ? current
-                        ? "bg-[var(--accent)] text-white ring-4 ring-[var(--accent)]/20"
-                        : "bg-emerald-500 text-white"
-                      : "bg-slate-100 text-slate-400"
-                  }`}>
-                    {idx + 1}
-                  </div>
-                  <span className={`text-[10px] font-semibold mt-1.5 capitalize whitespace-nowrap ${
-                    done ? "text-slate-700" : "text-slate-400"
-                  }`}>
-                    {stage.replace(/_/g, " ")}
-                  </span>
-                </div>
-                {idx < STATUSES.length - 1 && (
-                  <div className={`h-0.5 flex-1 min-w-[20px] mx-1 rounded transition-colors ${
-                    idx < currentStageIdx ? "bg-emerald-400" : "bg-slate-200"
-                  }`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        <Callout icon={Mail}>
+          Changing the status to In transit, Arrived or Delivered emails {shipment.company_name} automatically. In transit and Delivered also
+          send a text message.
+        </Callout>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Tabbed Content */}
-          <ShipmentTabs
-            overviewContent={
-              <div className="space-y-6">
-                {/* Route & Cargo */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <InfoItem icon={<MapPin size={16} />} label="Origin" value={shipment.origin} />
-                  <InfoItem icon={<MapPin size={16} />} label="Destination" value={shipment.destination} />
-                  <InfoItem icon={<Ship size={16} />} label="Method" value={shipment.method} />
-                  {shipment.vessel_name && <InfoItem icon={<Anchor size={16} />} label="Vessel" value={`${shipment.vessel_name}${shipment.voyage_no ? ` / ${shipment.voyage_no}` : ""}`} />}
-                  {shipment.bl_no && <InfoItem icon={<FileIcon size={16} />} label="B/L Number" value={shipment.bl_no} />}
-                </div>
+        <Card>
+          <CardHeader title="Summary" />
+          <DetailList columns={3} items={summary} />
+        </Card>
 
-                {containers.length > 0 && (
+        <ShipmentTabs
+          tabs={[
+            {
+              id: "updates",
+              label: "Updates",
+              count: events.length,
+              content: (
+                <div className="space-y-5">
                   <div>
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Containers</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {containers.map((c: string, i: number) => (
-                        <span key={i} className="px-3 py-1.5 rounded-lg bg-slate-100 text-sm font-mono text-slate-700">
-                          <Box size={13} className="inline mr-1.5 text-slate-400" />{c}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {Object.keys(cargo).length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cargo Details</h3>
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      {Object.entries(cargo).map(([k, v]) =>
-                        v ? (
-                          <div key={k} className="flex justify-between p-2.5 rounded-lg bg-slate-50 text-sm">
-                            <span className="text-slate-500 capitalize">{k}</span>
-                            <span className="font-medium text-slate-700">{v}</span>
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Key Dates */}
-                <div>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Key Dates</h3>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {[
-                      { label: "Est. Departure", val: shipment.estimated_departure },
-                      { label: "Act. Departure", val: shipment.actual_departure },
-                      { label: "Est. Arrival", val: shipment.estimated_arrival },
-                      { label: "Act. Arrival", val: shipment.actual_arrival },
-                    ].map((d) => (
-                      <div key={d.label} className="flex justify-between p-2.5 rounded-lg bg-slate-50 text-sm">
-                        <span className="text-slate-500">{d.label}</span>
-                        <span className="font-medium text-slate-700">
-                          {d.val ? new Date(d.val).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <KeyDatesEditor action={updateKeyDates} entityId={id} current={keyDates} />
-                  </div>
-                </div>
-
-                {shipment.inquiry_id && (
-                  <Link href={`/admin/inquiries/${shipment.inquiry_id}`} className="text-sm text-[var(--accent)] hover:underline">
-                    View linked inquiry →
-                  </Link>
-                )}
-              </div>
-            }
-            documentsContent={
-              <div>
-                {docs && docs.length > 0 ? (
-                  <div className="space-y-2">
-                    {docs.map((d) => (
-                      <a
-                        key={d.id}
-                        href={d.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                          <FileIcon size={18} className="text-slate-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 truncate">{d.file_url.split("/").pop()}</p>
-                          <p className="text-[11px] text-slate-400 uppercase">{d.doc_type}</p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-400 py-4 text-center">No documents uploaded yet.</p>
-                )}
-              </div>
-            }
-            financeContent={
-              <div className="space-y-4">
-                {/* Cost / Revenue */}
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Cost</p>
-                    <p className="text-lg font-bold text-slate-800">{shipment.currency || "USD"} {Number(shipment.total_cost || 0).toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Revenue</p>
-                    <p className="text-lg font-bold text-emerald-600">{shipment.currency || "USD"} {Number(shipment.total_revenue || 0).toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Profit</p>
-                    <p className={`text-lg font-bold ${Number(shipment.total_revenue || 0) - Number(shipment.total_cost || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                      {shipment.currency || "USD"} {(Number(shipment.total_revenue || 0) - Number(shipment.total_cost || 0)).toLocaleString()}
+                    <NoteForm
+                      action={addShipmentEvent}
+                      entityId={id}
+                      fieldName="shipment_id"
+                      placeholder="Write an update, e.g. Vessel berthed at Tema"
+                    />
+                    <p className="mt-2 text-[13px] leading-5 text-slate-500">
+                      Updates appear on the client&apos;s tracking page, so write them for the client. Keep internal remarks in the notes
+                      under Invoices and notes.
                     </p>
                   </div>
+                  <ShipmentTimeline events={events} />
                 </div>
-
-                {/* Linked Invoices */}
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Invoices</h3>
-                {invoices && invoices.length > 0 ? (
-                  <div className="space-y-2">
-                    {invoices.map((inv) => (
-                      <Link key={inv.id} href={`/admin/finance/${inv.id}`} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50">
-                        <span className="text-sm font-semibold text-slate-700">{inv.invoice_no}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-600">${Number(inv.total).toLocaleString()}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                            inv.status === "paid" ? "bg-emerald-100 text-emerald-700" :
-                            inv.status === "overdue" ? "bg-red-100 text-red-700" :
-                            "bg-slate-100 text-slate-600"
-                          }`}>{inv.status}</span>
-                        </div>
-                      </Link>
-                    ))}
+              ),
+            },
+            {
+              id: "dates",
+              label: "Key dates",
+              content: (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className={sectionTitle}>Milestone dates</h3>
+                    <p className="mb-4 mt-0.5 text-sm leading-6 text-slate-500">
+                      Fill these in as they become known. Clients see them on the tracking page, and the arrival date is the ETA shown in
+                      the shipments list.
+                    </p>
+                    <KeyDatesEditor action={updateKeyDates} entityId={id} current={keyDates} />
                   </div>
-                ) : (
-                  <p className="text-sm text-slate-400">No invoices linked.</p>
-                )}
-
-                {/* Cost / Service Notes */}
-                <NotesEditor
-                  action={updateShipmentNotes}
-                  entityId={id}
-                  costNotes={shipment.cost_notes || ""}
-                  serviceNotes={shipment.service_notes || ""}
-                />
-              </div>
-            }
-            activityContent={
-              <div>
-                <NoteForm action={addShipmentEvent} entityId={id} fieldName="shipment_id" />
-                <div className="mt-4">
-                  <ShipmentTimeline events={events || []} />
+                  {schedule.length ? (
+                    <div className="border-t border-slate-200 pt-5">
+                      <h3 className={`${sectionTitle} mb-4`}>Carrier schedule</h3>
+                      <DetailList columns={2} items={schedule.map((d) => ({ label: d.label, value: formatDate(d.value) }))} />
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            }
-          />
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Client */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Client</h2>
-            {client ? (
-              <div className="space-y-1.5 text-sm">
-                <Link href={`/admin/clients/${client.id}`} className="font-semibold text-[var(--accent)] hover:underline block">
-                  {client.company_name}
-                </Link>
-                <p className="text-slate-600">{client.contact_name}</p>
-                <p className="text-slate-500 text-xs">{client.email}</p>
-                <p className="text-slate-500 text-xs">{client.phone}</p>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">No client linked.</p>
-            )}
-          </div>
-
-          {/* Assignment */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Assigned To</h2>
-            <AssignSelect
-              currentAssignee={shipment.assigned_to}
-              staff={staff || []}
-              action={assignShipment}
-              entityId={id}
-            />
-          </div>
-
-          {/* Customs */}
-          {customs && customs.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Customs</h2>
-              <div className="space-y-2">
-                {customs.map((c) => (
-                  <Link key={c.id} href={`/admin/customs/${c.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm font-medium text-slate-700">{c.declaration_no || "Draft"}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                      c.status === "released" ? "bg-emerald-100 text-emerald-700" :
-                      c.status === "query" ? "bg-amber-100 text-amber-700" :
-                      "bg-slate-100 text-slate-600"
-                    }`}>{c.status}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Vessel & Container Info */}
-          {(shipment.vessel_name || shipment.bl_no) && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Vessel Info</h2>
-              <div className="space-y-2 text-sm">
-                {shipment.vessel_name && <p><span className="text-slate-500">Vessel:</span> <span className="font-medium text-slate-800">{shipment.vessel_name}</span></p>}
-                {shipment.voyage_no && <p><span className="text-slate-500">Voyage:</span> <span className="font-medium text-slate-800">{shipment.voyage_no}</span></p>}
-                {shipment.bl_no && <p><span className="text-slate-500">B/L #:</span> <span className="font-mono font-medium text-slate-800">{shipment.bl_no}</span></p>}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50">
-      <span className="text-slate-400 mt-0.5">{icon}</span>
-      <div>
-        <p className="text-[11px] text-slate-500">{label}</p>
-        <p className="text-sm font-medium text-slate-800 capitalize">{value}</p>
+              ),
+            },
+            {
+              id: "documents",
+              label: "Documents",
+              count: docs.length,
+              content: docs.length ? (
+                <div>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className={sectionTitle}>Shipment documents</h3>
+                    <DocumentUpload
+                      shipments={[{ id, shipment_no: shipment.shipment_no }]}
+                      shipmentId={id}
+                      variant="secondary"
+                      size="sm"
+                      label="Upload"
+                    />
+                  </div>
+                  <ul className="divide-y divide-slate-100">
+                    {docs.map((d) => {
+                      const name = fileNameFromUrl(d.file_url);
+                      return (
+                        <li key={d.id} className="flex items-center gap-3 py-3">
+                          <FileText size={18} strokeWidth={1.6} className="shrink-0 text-slate-400" aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <a
+                              href={d.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block truncate text-sm font-medium text-[var(--navy)] underline-offset-4 hover:underline"
+                            >
+                              {name}
+                            </a>
+                            <p className="text-[13px] text-slate-500">
+                              {docTypeLabel(d.doc_type)} · Uploaded {formatDate(d.created_at)}
+                            </p>
+                          </div>
+                          <a href={d.file_url} download className={buttonClass("secondary", "sm")} aria-label={`Download ${name}`}>
+                            <Download size={15} aria-hidden /> <span className="hidden sm:inline">Download</span>
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={FileText}
+                  title="No documents yet"
+                  description="Keep the bill of lading, commercial invoice, packing list and other paperwork for this shipment here."
+                  action={<DocumentUpload shipments={[{ id, shipment_no: shipment.shipment_no }]} shipmentId={id} />}
+                />
+              ),
+            },
+            {
+              id: "finance",
+              label: "Invoices and notes",
+              count: invoices.length,
+              content: (
+                <div className="space-y-6">
+                  <DetailList
+                    columns={3}
+                    items={[
+                      { label: "Cost", value: money(cost, currency) },
+                      { label: "Revenue", value: money(revenue, currency) },
+                      {
+                        label: "Profit",
+                        value: <span className={revenue - cost < 0 ? "text-red-700" : undefined}>{money(revenue - cost, currency)}</span>,
+                      },
+                    ]}
+                  />
+                  <div className="border-t border-slate-200 pt-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className={sectionTitle}>Invoices</h3>
+                      {invoices.length ? (
+                        <ButtonLink href="/admin/finance/new" variant="secondary" size="sm">
+                          <Plus size={15} /> New invoice
+                        </ButtonLink>
+                      ) : null}
+                    </div>
+                    {invoices.length ? (
+                      <ul className="divide-y divide-slate-100">
+                        {invoices.map((inv) => (
+                          <li key={inv.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
+                            <div className="min-w-0">
+                              <Link href={`/admin/finance/${inv.id}`} className="text-sm font-medium text-[var(--navy)] underline-offset-4 hover:underline">
+                                {inv.invoice_no}
+                              </Link>
+                              <p className="text-[13px] text-slate-500">{inv.due_date ? `Due ${formatDate(inv.due_date)}` : "No due date"}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium tabular-nums text-[var(--navy)]">
+                                {money(Number(inv.total || 0), inv.currency || "USD")}
+                              </span>
+                              <StatusBadge status={inv.status} />
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <EmptyState
+                        compact
+                        icon={Receipt}
+                        title="No invoices for this shipment"
+                        description="Invoices raised against this shipment are listed here with their status."
+                        action={
+                          <ButtonLink href="/admin/finance/new" variant="secondary">
+                            <Plus size={16} /> New invoice
+                          </ButtonLink>
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className="border-t border-slate-200 pt-5">
+                    <h3 className={sectionTitle}>Internal notes</h3>
+                    <p className="mb-4 mt-0.5 text-sm leading-6 text-slate-500">Only staff can see these.</p>
+                    <NotesEditor
+                      action={updateShipmentNotes}
+                      entityId={id}
+                      costNotes={shipment.cost_notes || ""}
+                      serviceNotes={shipment.service_notes || ""}
+                    />
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "customs",
+              label: "Customs",
+              count: customs.length,
+              content: customs.length ? (
+                <div>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className={sectionTitle}>Customs declarations</h3>
+                    <ButtonLink href={`/admin/customs/new?shipment=${id}`} variant="secondary" size="sm">
+                      <Plus size={15} /> New declaration
+                    </ButtonLink>
+                  </div>
+                  <ul className="divide-y divide-slate-100">
+                    {customs.map((c) => (
+                      <li key={c.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
+                        <div className="min-w-0">
+                          <Link href={`/admin/customs/${c.id}`} className="text-sm font-medium text-[var(--navy)] underline-offset-4 hover:underline">
+                            {c.declaration_no || "Not yet numbered"}
+                          </Link>
+                          <p className="text-[13px] text-slate-500">
+                            Duty {c.duty_amount != null ? money(c.duty_amount, currency) : "not set"} · Tax{" "}
+                            {c.tax_amount != null ? money(c.tax_amount, currency) : "not set"}
+                          </p>
+                        </div>
+                        <StatusBadge status={c.status} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={ClipboardCheck}
+                  title="No customs declaration yet"
+                  description="Start a declaration when this shipment needs clearing, then track duty, tax and any customs queries on it."
+                  action={
+                    <ButtonLink href={`/admin/customs/new?shipment=${id}`} variant="secondary">
+                      <Plus size={16} /> New declaration
+                    </ButtonLink>
+                  }
+                />
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   );

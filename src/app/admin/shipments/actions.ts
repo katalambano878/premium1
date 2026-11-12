@@ -107,7 +107,7 @@ export async function addShipmentEvent(formData: FormData) {
   if (!supabase || !body) return;
 
   ensure(
-    await supabase.from("shipment_events").insert({ shipment_id, event_type: "note", message: body, created_by: me.id }),
+    await supabase.from("shipment_events").insert({ shipment_id, event_type: "update", message: body, created_by: me.id }),
     "add the update",
   );
   revalidatePath(`/admin/shipments/${shipment_id}`);
@@ -187,4 +187,5 @@ export async function createShipment(formData: FormData) {
   }
 
   revalidatePath("/admin/shipments");
+  return shipment?.id as string | undefined;
 }

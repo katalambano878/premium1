@@ -1,185 +1,208 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Download, Eye, File, FileText, Image as ImageIcon } from "lucide-react";
+import { Download, FileText, FolderOpen, SearchX } from "lucide-react";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db/pool";
+import {
+  ButtonLink,
+  Card,
+  EmptyState,
+  FilterTabs,
+  PageHeader,
+  StatusBadge,
+  TableCard,
+  buttonClass,
+  cx,
+  formatDate,
+  rowLinkClass,
+  tableClass,
+  tdClass,
+  thClass,
+  timeAgo,
+  trClass,
+} from "@/components/admin/ui";
 import { DocumentUpload } from "@/components/admin/DocumentUpload";
+import { DbOffline, SearchForm } from "@/components/admin/shipments/parts";
+import { cleanQuery, likePattern, listHref } from "@/components/admin/shipments/format";
+import { DOC_TYPES, docTypeLabel, fileNameFromUrl } from "@/components/admin/documents/doc-types";
 
-const DOC_TYPE_ICONS: Record<string, string> = {
-  bill_of_lading: "B/L",
-  commercial_invoice: "CI",
-  packing_list: "PL",
-  certificate_of_origin: "CO",
-  customs_declaration: "CD",
-  insurance_certificate: "IC",
-  delivery_note: "DN",
-  other: "OT",
+type Row = {
+  id: string;
+  doc_type: string;
+  file_url: string;
+  created_at: string;
+  shipment_id: string;
+  shipment_no: string;
 };
 
-const DOC_TYPE_COLORS: Record<string, string> = {
-  bill_of_lading: "bg-blue-100 text-blue-700",
-  commercial_invoice: "bg-emerald-100 text-emerald-700",
-  packing_list: "bg-amber-100 text-amber-700",
-  customs_declaration: "bg-purple-100 text-purple-700",
-  insurance_certificate: "bg-cyan-100 text-cyan-700",
-  delivery_note: "bg-orange-100 text-orange-700",
-  certificate_of_origin: "bg-rose-100 text-rose-700",
-  other: "bg-slate-100 text-slate-600",
-};
+const LIMIT = 200;
+const BASE = "/admin/documents";
+// $1 matches shipment numbers; $2 matches the file name only (not its folder), with spaces
+// loosened because stored names have them replaced.
+const SEARCH_WHERE = "($1::text IS NULL OR s.shipment_no ILIKE $1 OR regexp_replace(d.file_url, '^.*/', '') ILIKE $2)";
 
-export default async function DocumentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string; q?: string }>;
-}) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ type?: string | string[]; q?: string | string[] }> }) {
   const params = await searchParams;
-  const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
+  const q = cleanQuery(params.q);
+  const type = typeof params.type === "string" ? params.type.replace(/[^a-z_]/g, "").slice(0, 40) || null : null;
 
-  const [docsResult, shipmentsResult] = await Promise.all([
-    (() => {
-      let q = supabase
-        .from("shipment_documents")
-        .select("id, doc_type, file_url, shipment_id, shipments(shipment_no), created_at")
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (params.type) q = q.eq("doc_type", params.type);
-      return q;
-    })(),
-    supabase
-      .from("shipments")
-      .select("id, shipment_no")
-      .order("created_at", { ascending: false })
-      .limit(50),
+  const description = "Bills of lading, invoices, packing lists and other paperwork, filed under the shipment they belong to.";
+
+  if (!createServiceRoleClient()) {
+    return (
+      <>
+        <PageHeader title="Documents" description={description} />
+        <DbOffline />
+      </>
+    );
+  }
+
+  const pattern = q ? likePattern(q) : null;
+  const namePattern = pattern ? pattern.replace(/ /g, "_") : null;
+  const [{ rows }, { rows: counts }, { rows: totals }, { rows: shipments }] = await Promise.all([
+    query<Row>(
+      `SELECT d.id, d.doc_type, d.file_url, d.created_at, d.shipment_id, s.shipment_no
+         FROM shipment_documents d
+         JOIN shipments s ON s.id = d.shipment_id
+        WHERE ${SEARCH_WHERE} AND ($3::text IS NULL OR d.doc_type = $3)
+        ORDER BY d.created_at DESC
+        LIMIT ${LIMIT}`,
+      [pattern, namePattern, type],
+    ),
+    query<{ doc_type: string; n: number }>(
+      `SELECT d.doc_type, count(*)::int AS n
+         FROM shipment_documents d JOIN shipments s ON s.id = d.shipment_id
+        WHERE ${SEARCH_WHERE}
+        GROUP BY d.doc_type`,
+      [pattern, namePattern],
+    ),
+    query<{ n: number }>("SELECT count(*)::int AS n FROM shipment_documents"),
+    query<{ id: string; shipment_no: string }>("SELECT id, shipment_no FROM shipments ORDER BY created_at DESC LIMIT 300"),
   ]);
 
-  const docs = docsResult.data;
-  const shipments = shipmentsResult.data || [];
-
-  const filtered = params.q
-    ? (docs || []).filter((d) => {
-        const ship = Array.isArray(d.shipments) ? d.shipments[0] : d.shipments;
-        const filename = d.file_url?.split("/").pop() || "";
-        return (
-          filename.toLowerCase().includes(params.q!.toLowerCase()) ||
-          ship?.shipment_no?.toLowerCase().includes(params.q!.toLowerCase()) ||
-          d.doc_type?.toLowerCase().includes(params.q!.toLowerCase())
-        );
-      })
-    : docs || [];
-
-  const typeCounts: Record<string, number> = {};
-  (docs || []).forEach((d) => {
-    typeCounts[d.doc_type] = (typeCounts[d.doc_type] || 0) + 1;
-  });
+  const total = totals[0]?.n || 0;
+  const matching = counts.reduce((sum, c) => sum + c.n, 0);
+  const countOf = (t: string) => counts.find((c) => c.doc_type === t)?.n || 0;
+  // Known types in their usual order, then anything else found in the data; only types that have files (or are selected).
+  const known: string[] = DOC_TYPES.map((t) => t.value);
+  const tabTypes = [...known, ...counts.map((c) => c.doc_type).filter((t) => !known.includes(t))].filter(
+    (t) => countOf(t) > 0 || t === type,
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Document Vault</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{docs?.length || 0} documents</p>
-        </div>
-        <DocumentUpload shipments={shipments} />
-      </div>
+    <>
+      <PageHeader title="Documents" description={description} actions={<DocumentUpload shipments={shipments} />} />
 
-      {/* Type Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <Link
-          href="/admin/documents"
-          className={`px-4 py-2 rounded-xl border text-sm font-semibold whitespace-nowrap transition-all ${
-            !params.type ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 text-slate-600"
-          }`}
-        >
-          All ({docs?.length || 0})
-        </Link>
-        {Object.entries(typeCounts).map(([type, count]) => (
-          <Link
-            key={type}
-            href={params.type === type ? "/admin/documents" : `/admin/documents?type=${type}`}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold whitespace-nowrap transition-all ${
-              params.type === type
-                ? DOC_TYPE_COLORS[type] || "bg-slate-100 text-slate-600"
-                : "bg-white border-slate-200 text-slate-600"
-            }`}
-          >
-            <span className="capitalize">{type.replace(/_/g, " ")}</span>
-            <span className="text-xs bg-black/5 px-1.5 py-0.5 rounded-md">{count}</span>
-          </Link>
-        ))}
-      </div>
-
-      {/* Document Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.length > 0 ? (
-          filtered.map((d) => {
-            const ship = Array.isArray(d.shipments) ? d.shipments[0] : d.shipments;
-            const filename = d.file_url?.split("/").pop() || "Document";
-            const ext = filename.split(".").pop()?.toLowerCase();
-            const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext || "");
-            const isPdf = ext === "pdf";
-
-            return (
-              <div
-                key={d.id}
-                className="rounded-2xl border border-slate-200 bg-white overflow-hidden hover:border-[var(--accent)]/30 hover:shadow-lg hover:shadow-slate-900/5 transition-all group"
-              >
-                {/* Preview Area */}
-                <div className="h-32 bg-slate-50 flex items-center justify-center border-b border-slate-100">
-                  {isImage ? (
-                    <ImageIcon size={32} className="text-slate-300" />
-                  ) : isPdf ? (
-                    <FileText size={32} className="text-red-300" />
-                  ) : (
-                    <File size={32} className="text-slate-300" />
-                  )}
-                </div>
-
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{filename}</p>
-                      {ship?.shipment_no && (
-                        <Link href={`/admin/shipments/${d.shipment_id}`} className="text-[11px] text-[var(--accent)] hover:underline">
-                          {ship.shipment_no}
-                        </Link>
-                      )}
-                    </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0 ${DOC_TYPE_COLORS[d.doc_type] || DOC_TYPE_COLORS.other}`}>
-                      {DOC_TYPE_ICONS[d.doc_type] || d.doc_type}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 mb-3">
-                    {new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </p>
-
-                  <div className="flex gap-2">
-                    <a
-                      href={d.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
-                    >
-                      <Eye size={12} /> View
-                    </a>
-                    <a
-                      href={d.file_url}
-                      download
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
-                    >
-                      <Download size={12} /> Download
-                    </a>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="col-span-full py-12 text-center text-slate-400">
-            <FileText size={32} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-sm">No documents found.</p>
+      {total === 0 ? (
+        <Card padded={false}>
+          <EmptyState
+            icon={FolderOpen}
+            title="No documents yet"
+            description="This is where shipment paperwork lives: bills of lading, commercial invoices, packing lists, certificates of origin, customs declarations, insurance certificates and delivery notes. Upload a file and choose the shipment it belongs to."
+            action={<DocumentUpload shipments={shipments} />}
+          />
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <FilterTabs
+              items={[
+                { label: "All", href: listHref(BASE, { q }), count: matching, active: !type },
+                ...tabTypes.map((t) => ({
+                  label: docTypeLabel(t),
+                  href: listHref(BASE, { type: t, q }),
+                  count: countOf(t),
+                  active: type === t,
+                })),
+              ]}
+            />
+            <SearchForm action={BASE} q={q} label="Search documents" placeholder="File name or shipment no." hidden={{ type }} />
           </div>
-        )}
-      </div>
-    </div>
+
+          {rows.length === 0 ? (
+            <Card padded={false}>
+              <EmptyState
+                icon={SearchX}
+                title="No documents match"
+                description={
+                  q
+                    ? `Nothing matches "${q}"${type ? ` under ${docTypeLabel(type)}` : ""}. Try part of the file name or the shipment number.`
+                    : `Nothing has been filed under ${docTypeLabel(type)} yet.`
+                }
+                action={
+                  <ButtonLink href={BASE} variant="secondary">
+                    Clear filters
+                  </ButtonLink>
+                }
+              />
+            </Card>
+          ) : (
+            <TableCard
+              footer={
+                rows.length >= LIMIT
+                  ? `Showing the ${LIMIT} newest documents. Search or pick a type to narrow the list.`
+                  : `${rows.length} ${rows.length === 1 ? "document" : "documents"}`
+              }
+            >
+              <table className={tableClass}>
+                <thead>
+                  <tr>
+                    <th className={thClass}>File</th>
+                    <th className={thClass}>Shipment</th>
+                    <th className={thClass}>Uploaded</th>
+                    <th className={cx(thClass, "text-right")}>
+                      <span className="sr-only">Download</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((d) => {
+                    const name = fileNameFromUrl(d.file_url);
+                    return (
+                      <tr key={d.id} className={trClass}>
+                        <td className={tdClass}>
+                          <div className="flex items-center gap-3">
+                            <FileText size={18} strokeWidth={1.6} className="shrink-0 text-slate-400" aria-hidden />
+                            <div className="min-w-0">
+                              <a
+                                href={d.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open in a new tab"
+                                className={cx(rowLinkClass, "block max-w-[18rem] truncate")}
+                              >
+                                {name}
+                              </a>
+                              <StatusBadge label={docTypeLabel(d.doc_type)} tone="slate" className="mt-1" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className={tdClass}>
+                          <Link
+                            href={`/admin/shipments/${d.shipment_id}`}
+                            className="font-medium text-[var(--accent-ink)] underline-offset-4 hover:underline"
+                          >
+                            {d.shipment_no}
+                          </Link>
+                        </td>
+                        <td className={cx(tdClass, "whitespace-nowrap")}>
+                          <time dateTime={d.created_at} title={timeAgo(d.created_at)}>
+                            {formatDate(d.created_at)}
+                          </time>
+                        </td>
+                        <td className={cx(tdClass, "text-right")}>
+                          <a href={d.file_url} download className={buttonClass("secondary", "sm")} aria-label={`Download ${name}`}>
+                            <Download size={15} aria-hidden /> Download
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TableCard>
+          )}
+        </div>
+      )}
+    </>
   );
 }

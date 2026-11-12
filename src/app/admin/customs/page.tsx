@@ -1,121 +1,205 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { ClipboardCheck, Plus } from "lucide-react";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db/pool";
+import { money } from "@/lib/finance";
+import {
+  ButtonLink,
+  Card,
+  EmptyState,
+  FilterTabs,
+  PageHeader,
+  StatusBadge,
+  TableCard,
+  cx,
+  formatDate,
+  rowLinkClass,
+  statusLabel,
+  tableClass,
+  tdClass,
+  thClass,
+  timeAgo,
+  trClass,
+} from "@/components/admin/ui";
+import { DbOffline } from "@/components/admin/shipments/parts";
+import { DECLARATION_STAGES, listHref } from "@/components/admin/shipments/format";
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  submitted: "bg-blue-100 text-blue-700",
-  query: "bg-amber-100 text-amber-700",
-  amended: "bg-purple-100 text-purple-700",
-  released: "bg-emerald-100 text-emerald-700",
+type Row = {
+  id: string;
+  declaration_no: string | null;
+  status: string;
+  duty_amount: number | null;
+  tax_amount: number | null;
+  query_deadline: string | null;
+  deadline_near: boolean | null;
+  deadline_past: boolean | null;
+  updated_at: string | null;
+  created_at: string;
+  shipment_id: string;
+  shipment_no: string;
+  currency: string | null;
 };
 
-export default async function CustomsPage() {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
+const LIMIT = 200;
+const BASE = "/admin/customs";
 
-  const { data: declarations } = await supabase
-    .from("customs_declarations")
-    .select("id, declaration_no, shipment_id, shipments(shipment_no), status, duty_amount, tax_amount, submitted_at, released_at, query_deadline, created_at")
-    .order("created_at", { ascending: false })
-    .limit(100);
+export default async function CustomsPage({ searchParams }: { searchParams: Promise<{ status?: string | string[] }> }) {
+  const params = await searchParams;
+  const status = DECLARATION_STAGES.find((s) => s === params.status) || null;
 
-  const statusCounts: Record<string, number> = {};
-  (declarations || []).forEach((d) => {
-    statusCounts[d.status] = (statusCounts[d.status] || 0) + 1;
-  });
+  const header = (
+    <PageHeader
+      title="Customs"
+      description="Declarations for shipments being cleared: what has been submitted, what customs has queried, and what is released."
+      actions={
+        <ButtonLink href={`${BASE}/new`}>
+          <Plus size={16} /> New declaration
+        </ButtonLink>
+      }
+    />
+  );
+
+  if (!createServiceRoleClient()) {
+    return (
+      <>
+        {header}
+        <DbOffline />
+      </>
+    );
+  }
+
+  const [{ rows }, { rows: counts }] = await Promise.all([
+    query<Row>(
+      `SELECT d.id, d.declaration_no, d.status, d.duty_amount, d.tax_amount, d.query_deadline,
+              d.query_deadline < NOW() + INTERVAL '3 days' AS deadline_near,
+              d.query_deadline::date < CURRENT_DATE AS deadline_past,
+              d.updated_at, d.created_at, d.shipment_id, s.shipment_no, s.currency
+         FROM customs_declarations d
+         JOIN shipments s ON s.id = d.shipment_id
+        WHERE ($1::text IS NULL OR d.status = $1)
+        ORDER BY d.updated_at DESC NULLS LAST, d.created_at DESC
+        LIMIT ${LIMIT}`,
+      [status],
+    ),
+    query<{ status: string; n: number }>("SELECT status, count(*)::int AS n FROM customs_declarations GROUP BY status"),
+  ]);
+
+  const countOf = (s: string) => counts.find((c) => c.status === s)?.n || 0;
+  const total = counts.reduce((sum, c) => sum + c.n, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Customs Workspace</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{declarations?.length || 0} declarations</p>
-        </div>
-        <Link
-          href="/admin/customs/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors shadow-sm"
-        >
-          <Plus size={16} /> New Declaration
-        </Link>
-      </div>
+    <>
+      {header}
 
-      {/* Status Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {["draft", "submitted", "query", "amended", "released"].map((status) => (
-          <div key={status} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold whitespace-nowrap ${STATUS_COLORS[status]}`}>
-            <span className="capitalize">{status}</span>
-            <span className="text-xs bg-black/5 px-1.5 py-0.5 rounded-md">{statusCounts[status] || 0}</span>
-          </div>
-        ))}
-      </div>
+      {total === 0 ? (
+        <Card padded={false}>
+          <EmptyState
+            icon={ClipboardCheck}
+            title="No customs declarations yet"
+            description="A declaration tracks one shipment through customs: its number, duty and tax, any query customs raises, and its release. Start one when a shipment needs clearing."
+            action={
+              <ButtonLink href={`${BASE}/new`}>
+                <Plus size={16} /> New declaration
+              </ButtonLink>
+            }
+          />
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <FilterTabs
+            items={[
+              { label: "All", href: BASE, count: total, active: !status },
+              ...DECLARATION_STAGES.map((s) => ({
+                label: statusLabel(s),
+                href: listHref(BASE, { status: s }),
+                count: countOf(s),
+                active: status === s,
+              })),
+            ]}
+          />
 
-      {/* Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Declaration #</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Shipment</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden md:table-cell">Duty</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden md:table-cell">Tax</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden sm:table-cell">Date</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {(declarations || []).length > 0 ? (
-                (declarations || []).map((d) => {
-                  const ship = Array.isArray(d.shipments) ? d.shipments[0] : d.shipments;
-                  return (
-                    <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/customs/${d.id}`} className="font-semibold text-slate-800 hover:text-[var(--accent)]">
-                          {d.declaration_no || "Draft"}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        {ship?.shipment_no ? (
-                          <Link href={`/admin/shipments/${d.shipment_id}`} className="text-[var(--accent)] text-xs font-semibold hover:underline">
-                            {ship.shipment_no}
+          {rows.length === 0 ? (
+            <Card padded={false}>
+              <EmptyState
+                icon={ClipboardCheck}
+                title={`No declarations are ${statusLabel(status).toLowerCase()}`}
+                description="Pick another status, or go back to the full list."
+                action={
+                  <ButtonLink href={BASE} variant="secondary">
+                    Show all declarations
+                  </ButtonLink>
+                }
+              />
+            </Card>
+          ) : (
+            <TableCard
+              footer={
+                rows.length >= LIMIT
+                  ? `Showing the ${LIMIT} most recently updated declarations. Pick a status to narrow the list.`
+                  : `${rows.length} ${rows.length === 1 ? "declaration" : "declarations"}`
+              }
+            >
+              <table className={cx(tableClass, "min-w-[860px]")}>
+                <thead>
+                  <tr>
+                    <th className={thClass}>Declaration no.</th>
+                    <th className={thClass}>Shipment</th>
+                    <th className={thClass}>Status</th>
+                    <th className={cx(thClass, "text-right")}>Duty</th>
+                    <th className={cx(thClass, "text-right")}>Tax</th>
+                    <th className={thClass}>Query deadline</th>
+                    <th className={thClass}>Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((d) => {
+                    const currency = d.currency || "USD";
+                    // A deadline only needs chasing while the query is still open.
+                    const urgent = d.status === "query" && Boolean(d.deadline_near);
+                    return (
+                      <tr key={d.id} className={trClass}>
+                        <td className={tdClass}>
+                          <Link href={`${BASE}/${d.id}`} className={rowLinkClass}>
+                            {d.declaration_no || "Not yet numbered"}
                           </Link>
-                        ) : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${STATUS_COLORS[d.status] || ""}`}>
-                          {d.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
-                        {d.duty_amount ? `$${Number(d.duty_amount).toLocaleString()}` : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
-                        {d.tax_amount ? `$${Number(d.tax_amount).toLocaleString()}` : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400 hidden sm:table-cell">
-                        {new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/customs/${d.id}`} className="text-slate-400 group-hover:text-[var(--accent)]">
-                          <ArrowUpRight size={16} />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                    No customs declarations yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td className={tdClass}>
+                          <Link
+                            href={`/admin/shipments/${d.shipment_id}`}
+                            className="font-medium text-[var(--accent-ink)] underline-offset-4 hover:underline"
+                          >
+                            {d.shipment_no}
+                          </Link>
+                        </td>
+                        <td className={tdClass}>
+                          <StatusBadge status={d.status} />
+                        </td>
+                        <td className={cx(tdClass, "text-right tabular-nums whitespace-nowrap")}>
+                          {d.duty_amount != null ? money(d.duty_amount, currency) : <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className={cx(tdClass, "text-right tabular-nums whitespace-nowrap")}>
+                          {d.tax_amount != null ? money(d.tax_amount, currency) : <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className={cx(tdClass, "whitespace-nowrap")}>
+                          {d.query_deadline ? (
+                            <span className={urgent ? "font-medium text-red-700" : undefined}>
+                              {formatDate(d.query_deadline)}
+                              {urgent ? <span className="block text-[13px] font-normal">{d.deadline_past ? "Overdue" : "Due soon"}</span> : null}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className={cx(tdClass, "whitespace-nowrap")}>{timeAgo(d.updated_at || d.created_at)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TableCard>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

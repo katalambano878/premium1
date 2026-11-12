@@ -56,6 +56,7 @@ export async function assignInquiry(formData: FormData) {
   );
   await logActivity({ entityType: "inquiry", entityId: inquiryId, action: "assigned inquiry" });
   revalidatePath(`/admin/inquiries/${inquiryId}`);
+  revalidatePath("/admin/inquiries");
 }
 
 export async function addInquiryNote(formData: FormData) {
@@ -83,7 +84,10 @@ export async function setFollowUp(formData: FormData) {
       .eq("id", inquiryId),
     "set the follow-up",
   );
+  await logActivity({ entityType: "inquiry", entityId: inquiryId, action: text(formData, "follow_up_at", 40) ? "set a follow-up" : "cleared the follow-up" });
   revalidatePath(`/admin/inquiries/${inquiryId}`);
+  revalidatePath("/admin/inquiries");
+  revalidatePath("/admin");
 }
 
 /**
@@ -101,6 +105,7 @@ export async function convertToShipment(formData: FormData) {
     await db.query("BEGIN");
     const inq = (await db.query("SELECT * FROM inquiries WHERE id = $1 FOR UPDATE", [inquiryId])).rows[0];
     if (!inq) throw new Error("This enquiry no longer exists.");
+    if (inq.status === "lost") throw new Error("This enquiry is marked lost. Change its status before creating a shipment.");
 
     const already = await db.query<{ id: string }>("SELECT id FROM shipments WHERE inquiry_id = $1 LIMIT 1", [inquiryId]);
     if (already.rows[0]) {

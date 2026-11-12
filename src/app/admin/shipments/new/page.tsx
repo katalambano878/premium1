@@ -1,69 +1,109 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { createShipment } from "../actions";
 import { redirect } from "next/navigation";
+import { Users } from "lucide-react";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db/pool";
+import { ButtonLink, Callout, Card, Field, FormActions, Input, PageHeader, Select } from "@/components/admin/ui";
+import { ActionForm, SubmitButton } from "@/components/admin/ui-client";
+import { DbOffline } from "@/components/admin/shipments/parts";
+import { createShipment } from "../actions";
 
 async function handleCreate(formData: FormData) {
   "use server";
-  await createShipment(formData);
-  redirect("/admin/shipments");
+  const id = await createShipment(formData);
+  redirect(id ? `/admin/shipments/${id}` : "/admin/shipments");
 }
 
-export default async function NewShipmentPage() {
-  const supabase = createServiceRoleClient();
-  let clients: { id: string; company_name: string }[] = [];
+export default async function NewShipmentPage({ searchParams }: { searchParams: Promise<{ client?: string | string[] }> }) {
+  const params = await searchParams;
+  const header = (
+    <PageHeader
+      title="New shipment"
+      description="Start a job for a client. It begins as a draft; you can add dates, documents and updates once it exists."
+      back={{ href: "/admin/shipments", label: "Shipments" }}
+    />
+  );
 
-  if (supabase) {
-    const { data } = await supabase.from("clients").select("id, company_name").order("company_name");
-    clients = data || [];
+  if (!createServiceRoleClient()) {
+    return (
+      <>
+        {header}
+        <DbOffline />
+      </>
+    );
   }
+
+  const { rows: clients } = await query<{ id: string; company_name: string }>(
+    "SELECT id, company_name FROM clients ORDER BY company_name",
+  );
+  const preselected = clients.find((c) => c.id === params.client)?.id || "";
 
   return (
     <div className="max-w-2xl">
-      <Link href="/admin/shipments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-6">
-        <ArrowLeft size={16} />
-        Back to shipments
-      </Link>
+      {header}
 
-      <h1 className="text-2xl font-semibold text-slate-900 mb-8">Create Shipment</h1>
-
-      <form action={handleCreate} className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-        <div>
-          <label className="text-sm font-medium text-slate-700 block mb-1">Client *</label>
-          <select name="client_id" required className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200">
-            <option value="">Select client...</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.company_name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Origin *</label>
-            <input name="origin" required className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200" />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Destination *</label>
-            <input name="destination" required className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200" />
-          </div>
-        </div>
-        <div>
-          <label className="text-sm font-medium text-slate-700 block mb-1">Method</label>
-          <select name="method" className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200">
-            <option value="sea">Sea</option>
-            <option value="air">Air</option>
-            <option value="road">Road</option>
-            <option value="multimodal">Multimodal</option>
-          </select>
-        </div>
-        <button
-          type="submit"
-          className="w-full py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+      {clients.length === 0 ? (
+        <Callout
+          tone="warning"
+          icon={Users}
+          title="Add a client first"
+          action={<ButtonLink href="/admin/clients/new">Add a client</ButtonLink>}
         >
-          Create Shipment
-        </button>
-      </form>
+          Every shipment belongs to a client, and there are none yet. Add the client, then come back to create the shipment.
+        </Callout>
+      ) : (
+        <Card>
+          <ActionForm action={handleCreate} success="Shipment created" error="The shipment could not be created. Check the details and try again.">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Client"
+                htmlFor="client_id"
+                required
+                className="sm:col-span-2"
+                hint={
+                  <>
+                    Not in the list?{" "}
+                    <Link href="/admin/clients/new" className="font-medium text-[var(--accent-ink)] underline-offset-4 hover:underline">
+                      Add a new client
+                    </Link>
+                    .
+                  </>
+                }
+              >
+                <Select id="client_id" name="client_id" required defaultValue={preselected}>
+                  <option value="" disabled>
+                    Choose a client
+                  </option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.company_name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Origin" htmlFor="origin" required hint="Where the cargo is collected or loaded.">
+                <Input id="origin" name="origin" required maxLength={200} placeholder="e.g. Guangzhou, China" autoComplete="off" />
+              </Field>
+              <Field label="Destination" htmlFor="destination" required hint="Where it is going.">
+                <Input id="destination" name="destination" required maxLength={200} placeholder="e.g. Tema Port, Ghana" autoComplete="off" />
+              </Field>
+              <Field label="Method" htmlFor="method" className="sm:col-span-2">
+                <Select id="method" name="method" defaultValue="sea">
+                  <option value="sea">Sea</option>
+                  <option value="air">Air</option>
+                  <option value="road">Road</option>
+                </Select>
+              </Field>
+            </div>
+            <FormActions>
+              <ButtonLink href="/admin/shipments" variant="secondary">
+                Cancel
+              </ButtonLink>
+              <SubmitButton pendingLabel="Creating…">Create shipment</SubmitButton>
+            </FormActions>
+          </ActionForm>
+        </Card>
+      )}
     </div>
   );
 }

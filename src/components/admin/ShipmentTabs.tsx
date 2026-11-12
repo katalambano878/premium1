@@ -1,63 +1,71 @@
 "use client";
 
-import { useState } from "react";
-import { DollarSign, FileText, MapPin, MessageSquare } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { cx } from "./ui";
 
-const TABS = [
-  { id: "overview", label: "Overview", icon: MapPin },
-  { id: "documents", label: "Documents", icon: FileText },
-  { id: "finance", label: "Finance", icon: DollarSign },
-  { id: "activity", label: "Activity", icon: MessageSquare },
-] as const;
+export type ShipmentTab = { id: string; label: string; count?: number; content: React.ReactNode };
 
-type TabId = (typeof TABS)[number]["id"];
+/** Tabbed card for the shipment page. Every panel stays mounted, so half-typed forms survive a tab switch. */
+export function ShipmentTabs({ tabs }: { tabs: ShipmentTab[] }) {
+  const [active, setActive] = useState(tabs[0]?.id);
+  const base = useId();
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-export function ShipmentTabs({
-  overviewContent,
-  documentsContent,
-  financeContent,
-  activityContent,
-}: {
-  overviewContent: React.ReactNode;
-  documentsContent: React.ReactNode;
-  financeContent: React.ReactNode;
-  activityContent: React.ReactNode;
-}) {
-  const [active, setActive] = useState<TabId>("overview");
-
-  const content: Record<TabId, React.ReactNode> = {
-    overview: overviewContent,
-    documents: documentsContent,
-    finance: financeContent,
-    activity: activityContent,
+  const move = (from: number, step: number) => {
+    const next = tabs[(from + step + tabs.length) % tabs.length];
+    setActive(next.id);
+    refs.current[next.id]?.focus();
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white">
-      {/* Tab Bar */}
-      <div className="flex border-b border-slate-100 overflow-x-auto">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = active === tab.id;
+    <section className="rounded-2xl border border-slate-200 bg-white">
+      <div role="tablist" aria-label="Shipment sections" className="flex overflow-x-auto border-b border-slate-200 px-2 sm:px-3">
+        {tabs.map((tab, i) => {
+          const selected = tab.id === active;
           return (
             <button
               key={tab.id}
+              ref={(el) => {
+                refs.current[tab.id] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`${base}-tab-${tab.id}`}
+              aria-selected={selected}
+              aria-controls={`${base}-panel-${tab.id}`}
+              tabIndex={selected ? 0 : -1}
               onClick={() => setActive(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
-                isActive
-                  ? "border-[var(--accent)] text-[var(--accent)]"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight") move(i, 1);
+                if (e.key === "ArrowLeft") move(i, -1);
+              }}
+              className={cx(
+                "-mb-px inline-flex min-h-12 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-ink)]",
+                selected ? "border-[var(--navy)] text-[var(--navy)]" : "border-transparent text-slate-500 hover:text-[var(--navy)]",
+              )}
             >
-              <Icon size={15} />
               {tab.label}
+              {typeof tab.count === "number" ? (
+                <span className={cx("rounded-full px-1.5 text-xs tabular-nums", selected ? "bg-slate-100 text-slate-700" : "text-slate-400")}>
+                  {tab.count}
+                </span>
+              ) : null}
             </button>
           );
         })}
       </div>
-
-      {/* Content */}
-      <div className="p-5">{content[active]}</div>
-    </div>
+      {tabs.map((tab) => (
+        <div
+          key={tab.id}
+          role="tabpanel"
+          id={`${base}-panel-${tab.id}`}
+          aria-labelledby={`${base}-tab-${tab.id}`}
+          hidden={tab.id !== active}
+          className="p-5 sm:p-6"
+        >
+          {tab.content}
+        </div>
+      ))}
+    </section>
   );
 }

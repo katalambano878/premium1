@@ -1,485 +1,426 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  ArrowUpRight,
-  Box,
-  CircleDollarSign,
-  Clock,
-  FileText,
-  Inbox,
-  Plus,
-  TrendingUp,
-  Truck,
-  Users,
-} from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardCheck, FileText, Inbox, Truck, Users } from "lucide-react";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
+import { ButtonLink, Callout, Card, CardHeader, CardLink, EmptyState, PageHeader, StatCard, StatusBadge, cx, formatDate, initials, statusLabel, timeAgo } from "@/components/admin/ui";
+import { MoneyLines } from "@/components/admin/MoneyLines";
 import { getSessionUser } from "@/lib/auth/session";
-import { canAccess } from "@/lib/auth/roles";
+import { canAccess, canWrite } from "@/lib/auth/roles";
 import { query } from "@/lib/db/pool";
 import { formatTotals, money, refreshOverdueInvoices } from "@/lib/finance";
 
-type MoneyRow = { currency: string; received: number; outstanding: number; overdue: number };
+export const dynamic = "force-dynamic";
 
-const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-100 text-blue-700",
-  contacted: "bg-amber-100 text-amber-700",
-  quoted: "bg-purple-100 text-purple-700",
-  won: "bg-emerald-100 text-emerald-700",
-  lost: "bg-slate-100 text-slate-500",
-  draft: "bg-slate-100 text-slate-600",
-  booked: "bg-blue-100 text-blue-700",
-  in_transit: "bg-amber-100 text-amber-700",
-  arrived: "bg-cyan-100 text-cyan-700",
-  clearing: "bg-purple-100 text-purple-700",
-  out_for_delivery: "bg-orange-100 text-orange-700",
-  delivered: "bg-emerald-100 text-emerald-700",
-  sent: "bg-blue-100 text-blue-700",
-  paid: "bg-emerald-100 text-emerald-700",
-  overdue: "bg-red-100 text-red-700",
-  void: "bg-slate-100 text-slate-400",
-  urgent: "bg-red-100 text-red-700",
-  high: "bg-orange-100 text-orange-700",
-};
+type MoneyRow = { currency: string; received: number; outstanding: number; overdue: number };
+type Attention = { key: string; icon: typeof Inbox; title: string; detail: string; href: string; tone: "red" | "amber" };
+
+const SHIPMENT_STAGES = ["draft", "booked", "in_transit", "arrived", "clearing", "out_for_delivery", "delivered"] as const;
+const ENQUIRY_STAGES = ["new", "contacted", "quoted", "won", "lost"] as const;
+
+const rows = <T,>(sql: string, params: unknown[] = []) =>
+  query<T & Record<string, unknown>>(sql, params)
+    .then((r) => r.rows as T[])
+    .catch((e) => {
+      console.error("[dashboard]", e);
+      return [] as T[];
+    });
 
 export default async function AdminDashboard() {
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return <div className="p-8 text-slate-500">The database is not connected.</div>;
-  }
-
   const me = await getSessionUser();
-  const showFinance = !!me && canAccess(me.role, "finance");
+  if (!me) return null;
+  const can = (resource: string) => canAccess(me.role, resource);
+  const showFinance = can("finance");
   if (showFinance) await refreshOverdueInvoices();
 
-  const now = new Date();
-  const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString();
-
   const [
-    { count: inquiryCount },
-    { count: shipmentCount },
-    { count: clientCount },
-    { data: invoiceStats },
-    { data: allInquiries },
-    { data: recentInquiries },
-    { data: recentShipments },
-    { data: recentActivity },
-    { data: shipmentsByStatus },
-    { data: overdueFollowUps },
-    { data: customsQueries },
-    { data: overdueInvoices },
+    enquiryCounts,
+    shipmentCounts,
+    totals,
+    moneyRows,
+    recentEnquiries,
+    recentShipments,
+    activity,
+    overdueFollowUps,
+    customsQueries,
+    overdueInvoices,
+    unassigned,
+    monthly,
   ] = await Promise.all([
-    supabase.from("inquiries").select("*", { count: "exact", head: true }),
-    supabase.from("shipments").select("*", { count: "exact", head: true }),
-    supabase.from("clients").select("*", { count: "exact", head: true }),
-    // Money per currency: payments received, and what is still owed on open invoices.
+    rows<{ status: string; n: number }>("SELECT status, count(*)::int AS n FROM inquiries GROUP BY status"),
+    rows<{ status: string; n: number }>("SELECT status, count(*)::int AS n FROM shipments GROUP BY status"),
+    rows<{ clients: number; staff: number }>(
+      "SELECT (SELECT count(*)::int FROM clients) AS clients, (SELECT count(*)::int FROM staff_users WHERE is_active) AS staff",
+    ),
     showFinance
-      ? query<MoneyRow>(
-          `SELECT i.currency,
+      ? rows<MoneyRow>(
+          `SELECT COALESCE(i.currency, 'USD') AS currency,
                   COALESCE(SUM(p.paid), 0) AS received,
                   COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue') THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS outstanding,
                   COALESCE(SUM(CASE WHEN i.status = 'overdue' THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS overdue
              FROM invoices i
              LEFT JOIN (SELECT invoice_id, SUM(amount) AS paid FROM payments GROUP BY invoice_id) p ON p.invoice_id = i.id
             WHERE i.status <> 'void'
-            GROUP BY i.currency`,
-        ).then((r) => ({ data: r.rows }))
-      : Promise.resolve({ data: [] as MoneyRow[] }),
-    supabase.from("inquiries").select("status, estimated_value, created_at").gte("created_at", yearAgo),
-    supabase
-      .from("inquiries")
-      .select("id, inquiry_no, full_name, company_name, status, priority, created_at")
-      .order("created_at", { ascending: false })
-      .limit(6),
-    supabase
-      .from("shipments")
-      .select("id, shipment_no, origin, destination, status, method, created_at")
-      .order("created_at", { ascending: false })
-      .limit(6),
-    supabase
-      .from("activity_log")
-      .select("id, entity_type, action, actor_email, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(15),
-    supabase.from("shipments").select("status"),
-    supabase
-      .from("inquiries")
-      .select("id, inquiry_no, full_name, follow_up_at")
-      .lt("follow_up_at", now.toISOString())
-      .not("follow_up_at", "is", null)
-      .not("status", "in", "(won,lost)")
-      .limit(5),
-    supabase
-      .from("customs_declarations")
-      .select("id, declaration_no, query_deadline")
-      .eq("status", "query")
-      .limit(5),
+            GROUP BY 1`,
+        )
+      : Promise.resolve([] as MoneyRow[]),
+    can("inquiries")
+      ? rows<{ id: string; inquiry_no: string; full_name: string; company_name: string | null; status: string; priority: string | null; origin: string; destination: string; created_at: string }>(
+          "SELECT id, inquiry_no, full_name, company_name, status, priority, origin, destination, created_at FROM inquiries ORDER BY created_at DESC LIMIT 6",
+        )
+      : Promise.resolve([]),
+    can("shipments")
+      ? rows<{ id: string; shipment_no: string; origin: string; destination: string; status: string; company_name: string | null; created_at: string }>(
+          `SELECT s.id, s.shipment_no, s.origin, s.destination, s.status, c.company_name, s.created_at
+             FROM shipments s LEFT JOIN clients c ON c.id = s.client_id ORDER BY s.created_at DESC LIMIT 6`,
+        )
+      : Promise.resolve([]),
+    rows<{ id: string; entity_type: string; action: string; actor_email: string | null; actor_name: string | null; created_at: string }>(
+      `SELECT a.id, a.entity_type, a.action, a.actor_email, s.full_name AS actor_name, a.created_at
+         FROM activity_log a LEFT JOIN staff_users s ON lower(s.email) = lower(a.actor_email)
+        ORDER BY a.created_at DESC LIMIT 10`,
+    ),
+    can("inquiries")
+      ? rows<{ id: string; inquiry_no: string; full_name: string; follow_up_at: string }>(
+          `SELECT id, inquiry_no, full_name, follow_up_at FROM inquiries
+            WHERE follow_up_at IS NOT NULL AND follow_up_at < NOW() AND status NOT IN ('won','lost')
+            ORDER BY follow_up_at LIMIT 5`,
+        )
+      : Promise.resolve([]),
+    can("customs")
+      ? rows<{ id: string; declaration_no: string | null; query_deadline: string | null; shipment_no: string | null }>(
+          `SELECT d.id, d.declaration_no, d.query_deadline, s.shipment_no FROM customs_declarations d
+             LEFT JOIN shipments s ON s.id = d.shipment_id WHERE d.status = 'query' ORDER BY d.query_deadline NULLS LAST LIMIT 5`,
+        )
+      : Promise.resolve([]),
     showFinance
-      ? supabase.from("invoices").select("id, invoice_no, total, currency, due_date, client_id").eq("status", "overdue").limit(5)
-      : Promise.resolve({ data: [] }),
+      ? rows<{ id: string; invoice_no: string; total: number; currency: string | null; due_date: string | null; company_name: string | null }>(
+          `SELECT i.id, i.invoice_no, i.total, i.currency, i.due_date, c.company_name FROM invoices i
+             LEFT JOIN clients c ON c.id = i.client_id WHERE i.status = 'overdue' ORDER BY i.due_date LIMIT 5`,
+        )
+      : Promise.resolve([]),
+    can("inquiries")
+      ? rows<{ n: number }>("SELECT count(*)::int AS n FROM inquiries WHERE status = 'new' AND assigned_to IS NULL AND created_at < NOW() - interval '24 hours'")
+      : Promise.resolve([]),
+    can("inquiries")
+      ? rows<{ month: string; n: number }>(
+          `SELECT to_char(date_trunc('month', created_at), 'Mon') AS month, count(*)::int AS n
+             FROM inquiries WHERE created_at >= date_trunc('month', NOW()) - interval '5 months'
+            GROUP BY date_trunc('month', created_at) ORDER BY date_trunc('month', created_at)`,
+        )
+      : Promise.resolve([]),
   ]);
 
-  // Pipeline counts
-  const pipelineCounts: Record<string, number> = {};
-  (allInquiries || []).forEach((i: { status: string }) => {
-    pipelineCounts[i.status] = (pipelineCounts[i.status] || 0) + 1;
-  });
+  const enquiries = Object.fromEntries(enquiryCounts.map((r) => [r.status, r.n])) as Record<string, number>;
+  const shipments = Object.fromEntries(shipmentCounts.map((r) => [r.status, r.n])) as Record<string, number>;
+  const totalEnquiries = enquiryCounts.reduce((s, r) => s + r.n, 0);
+  const totalShipments = shipmentCounts.reduce((s, r) => s + r.n, 0);
+  const activeShipments = totalShipments - (shipments.draft || 0) - (shipments.delivered || 0);
+  const toAnswer = (enquiries.new || 0) + (enquiries.contacted || 0);
+  const decided = (enquiries.won || 0) + (enquiries.lost || 0);
+  const winRate = decided > 0 ? `${Math.round(((enquiries.won || 0) / decided) * 100)}%` : "—";
+  const clientCount = totals[0]?.clients || 0;
 
-  // Shipment pipeline counts
-  const shipmentPipeline: Record<string, number> = {};
-  (shipmentsByStatus || []).forEach((s: { status: string }) => {
-    shipmentPipeline[s.status] = (shipmentPipeline[s.status] || 0) + 1;
-  });
-
-  // Money totals, kept per currency (never added across currencies)
   const pick = (k: "received" | "outstanding" | "overdue") =>
-    ((invoiceStats || []) as MoneyRow[])
-      .filter((r) => Number(r[k]) > 0)
-      .map((r) => ({ currency: r.currency || "USD", total: Number(r[k]) }));
-  const revenueLabel = formatTotals(pick("received"));
-  const outstandingLabel = formatTotals(pick("outstanding"));
+    moneyRows.filter((r) => Number(r[k]) > 0).map((r) => ({ currency: r.currency, total: Number(r[k]) }));
   const overdueTotals = pick("overdue");
 
-  // Monthly inquiry data for chart
-  const monthlyInquiries: Record<string, number> = {};
-  (allInquiries || []).forEach((i: { created_at: string }) => {
-    const m = i.created_at?.slice(0, 7);
-    if (m) monthlyInquiries[m] = (monthlyInquiries[m] || 0) + 1;
-  });
-
-  const exceptions = [
-    ...(overdueFollowUps || []).map((f: { id: string; inquiry_no: string; full_name: string }) => ({
-      type: "follow_up",
-      label: `Overdue follow-up: ${f.inquiry_no}`,
-      sub: f.full_name,
-      href: `/admin/inquiries/${f.id}`,
-    })),
-    ...(customsQueries || []).map((c: { id: string; declaration_no: string }) => ({
-      type: "customs",
-      label: `Customs query: ${c.declaration_no || "Pending"}`,
-      sub: "Needs response",
+  const attention: Attention[] = [
+    ...customsQueries.map((c) => ({
+      key: `c-${c.id}`,
+      icon: ClipboardCheck,
+      title: `Customs query on ${c.declaration_no || c.shipment_no || "a declaration"}`,
+      detail: c.query_deadline ? `Answer by ${formatDate(c.query_deadline)}` : "Needs a response",
       href: `/admin/customs/${c.id}`,
+      tone: "red" as const,
     })),
-    ...((overdueInvoices || []) as { id: string; invoice_no: string; total: number; currency: string }[]).map((inv) => ({
-      type: "invoice",
-      label: `Overdue: ${inv.invoice_no}`,
-      sub: money(Number(inv.total), inv.currency),
+    ...overdueInvoices.map((inv) => ({
+      key: `i-${inv.id}`,
+      icon: CircleDollarSign,
+      title: `${inv.invoice_no} is overdue`,
+      detail: `${money(Number(inv.total), inv.currency || "USD")}${inv.company_name ? ` · ${inv.company_name}` : ""}${inv.due_date ? ` · due ${formatDate(inv.due_date)}` : ""}`,
       href: `/admin/finance/${inv.id}`,
+      tone: "red" as const,
     })),
+    ...overdueFollowUps.map((f) => ({
+      key: `f-${f.id}`,
+      icon: CalendarClock,
+      title: `Follow up with ${f.full_name}`,
+      detail: `${f.inquiry_no} · was due ${timeAgo(f.follow_up_at)}`,
+      href: `/admin/inquiries/${f.id}`,
+      tone: "amber" as const,
+    })),
+    ...(unassigned[0]?.n
+      ? [
+          {
+            key: "unassigned",
+            icon: Inbox,
+            title: `${unassigned[0].n} new ${unassigned[0].n === 1 ? "enquiry has" : "enquiries have"} waited over 24 hours`,
+            detail: "Not yet assigned to anyone",
+            href: "/admin/inquiries?status=new",
+            tone: "amber" as const,
+          },
+        ]
+      : []),
   ];
 
-  const activeShipments = (shipmentsByStatus || []).filter(
-    (s: { status: string }) => !["draft", "delivered"].includes(s.status)
-  ).length;
-
-  const pendingInquiries = (pipelineCounts["new"] || 0) + (pipelineCounts["contacted"] || 0);
-
-  const shipmentStages = ["draft", "booked", "in_transit", "arrived", "clearing", "out_for_delivery", "delivered"];
-  const pipelineStages = ["new", "contacted", "quoted", "won", "lost"];
-
-  const chartData = pipelineStages.slice(0, 4).map((s) => ({
-    name: s.charAt(0).toUpperCase() + s.slice(1),
-    value: pipelineCounts[s] || 0,
-  }));
+  const firstName = (me.fullName || me.email).split(/[\s@]/)[0];
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Africa/Accra" }).format(new Date()));
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const today = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Accra" }).format(new Date());
+  const isEmpty = totalEnquiries === 0 && totalShipments === 0 && clientCount === 0;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Command Center</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/admin/shipments/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors shadow-sm"
-          >
-            <Plus size={16} /> New Shipment
-          </Link>
-          <Link
-            href="/admin/clients/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors"
-          >
-            <Plus size={16} /> New Client
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={`${greeting}, ${firstName}`}
+        description={`${today}. ${attention.length ? `${attention.length} ${attention.length === 1 ? "item needs" : "items need"} attention.` : "Nothing is waiting on you right now."}`}
+        actions={
+          <>
+            {canWrite(me.role, "shipments") ? <ButtonLink href="/admin/shipments/new">New shipment</ButtonLink> : null}
+            {can("inquiries") ? (
+              <ButtonLink href="/admin/inquiries?status=new" variant="secondary">
+                Review new enquiries
+              </ButtonLink>
+            ) : null}
+          </>
+        }
+      />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          icon={<Truck size={20} />}
-          label="Active Shipments"
-          value={activeShipments}
-          href="/admin/shipments"
-          accent="bg-blue-50 text-blue-600"
-        />
-        <KPICard
-          icon={<Inbox size={20} />}
-          label="Pending Inquiries"
-          value={pendingInquiries}
-          href="/admin/inquiries"
-          accent="bg-amber-50 text-amber-600"
-        />
+      {isEmpty ? <GettingStarted isAdmin={me.role === "admin"} canShip={canWrite(me.role, "shipments")} /> : null}
+
+      {/* Headline numbers */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {can("shipments") ? (
+          <StatCard label="Active shipments" value={activeShipments} hint={`${shipments.in_transit || 0} in transit · ${shipments.clearing || 0} clearing`} icon={Truck} href="/admin/shipments" />
+        ) : null}
+        {can("inquiries") ? (
+          <StatCard
+            label="Enquiries to answer"
+            value={toAnswer}
+            hint={`${enquiries.new || 0} new · ${enquiries.contacted || 0} contacted`}
+            icon={Inbox}
+            href="/admin/inquiries"
+            tone={(enquiries.new || 0) > 0 ? "warn" : "default"}
+          />
+        ) : null}
         {showFinance ? (
           <>
-            <KPICard
-              icon={<CircleDollarSign size={20} />}
-              label="Payments received"
-              value={revenueLabel}
-              href="/admin/finance"
-              accent="bg-emerald-50 text-emerald-600"
-            />
-            <KPICard
-              icon={<FileText size={20} />}
+            <StatCard label="Payments received" value={<MoneyLines totals={pick("received")} />} hint="All time, by currency" icon={CircleDollarSign} href="/admin/finance" tone="good" />
+            <StatCard
               label="Outstanding"
-              value={outstandingLabel}
+              value={<MoneyLines totals={pick("outstanding")} />}
+              hint={overdueTotals.length ? `${formatTotals(overdueTotals)} overdue` : "Nothing overdue"}
+              icon={FileText}
               href="/admin/finance"
-              accent="bg-purple-50 text-purple-600"
-              alert={overdueTotals.length ? `${formatTotals(overdueTotals)} overdue` : undefined}
+              tone={overdueTotals.length ? "bad" : "default"}
             />
           </>
+        ) : (
+          <StatCard label="Clients" value={clientCount} hint="Companies on record" icon={Users} href={can("clients") ? "/admin/clients" : undefined} />
+        )}
+      </div>
+
+      {/* Needs attention */}
+      {attention.length > 0 ? (
+        <Card padded={false}>
+          <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4 sm:px-6">
+            <AlertTriangle size={18} className="text-red-600" strokeWidth={1.8} />
+            <h2 className="text-base font-medium text-[var(--navy)]">Needs attention</h2>
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium tabular-nums text-red-800">{attention.length}</span>
+          </div>
+          <ul>
+            {attention.map((a) => (
+              <li key={a.key} className="border-b border-slate-100 last:border-b-0">
+                <Link href={a.href} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-slate-50 sm:px-6">
+                  <span
+                    className={cx(
+                      "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                      a.tone === "red" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700",
+                    )}
+                  >
+                    <a.icon size={17} strokeWidth={1.7} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-[var(--navy)]">{a.title}</span>
+                    <span className="block truncate text-[13px] text-slate-500">{a.detail}</span>
+                  </span>
+                  <ArrowRight size={16} className="shrink-0 text-slate-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[var(--navy)]" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : !isEmpty ? (
+        <Callout tone="success" icon={CheckCircle2} title="All clear">
+          No customs queries, overdue invoices or missed follow-ups.
+        </Callout>
+      ) : null}
+
+      {/* Shipment pipeline */}
+      {can("shipments") ? (
+        <Card>
+          <CardHeader title="Shipments by stage" description="Where every shipment is right now. Select a stage to see its shipments." action={<CardLink href="/admin/shipments">All shipments</CardLink>} />
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+            {SHIPMENT_STAGES.map((stage, i) => {
+              const count = shipments[stage] || 0;
+              return (
+                <li key={stage}>
+                  <Link
+                    href={`/admin/shipments?status=${stage}`}
+                    className="block h-full rounded-xl border border-slate-200 px-3.5 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    <span className="text-xs tabular-nums text-slate-400">0{i + 1}</span>
+                    <span className={cx("mt-1 block text-2xl font-medium tabular-nums tracking-[-0.02em]", count ? "text-[var(--navy)]" : "text-slate-300")}>{count}</span>
+                    <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">{statusLabel(stage)}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        </Card>
+      ) : null}
+
+      {/* Recent work */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {can("inquiries") ? (
+          <Card padded={false}>
+            <CardHeader className="mb-0 px-5 pt-5 sm:px-6" title="Latest enquiries" action={<CardLink href="/admin/inquiries">All enquiries</CardLink>} />
+            {recentEnquiries.length ? (
+              <ul className="mt-3">
+                {recentEnquiries.map((inq) => (
+                  <li key={inq.id} className="border-t border-slate-100">
+                    <Link href={`/admin/inquiries/${inq.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50 sm:px-6">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-[var(--navy)]">
+                          {inq.full_name}
+                          {inq.company_name ? <span className="font-normal text-slate-500"> · {inq.company_name}</span> : null}
+                        </span>
+                        <span className="block truncate text-[13px] text-slate-500">
+                          {inq.origin} → {inq.destination} · {timeAgo(inq.created_at)}
+                        </span>
+                      </span>
+                      {inq.priority === "urgent" || inq.priority === "high" ? <StatusBadge status={inq.priority} /> : null}
+                      <StatusBadge status={inq.status} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState compact icon={Inbox} title="No enquiries yet" description="Quote requests sent from the website appear here as soon as they arrive." />
+            )}
+          </Card>
+        ) : null}
+
+        {can("shipments") ? (
+          <Card padded={false}>
+            <CardHeader className="mb-0 px-5 pt-5 sm:px-6" title="Latest shipments" action={<CardLink href="/admin/shipments">All shipments</CardLink>} />
+            {recentShipments.length ? (
+              <ul className="mt-3">
+                {recentShipments.map((s) => (
+                  <li key={s.id} className="border-t border-slate-100">
+                    <Link href={`/admin/shipments/${s.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50 sm:px-6">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-[var(--navy)]">
+                          {s.shipment_no}
+                          {s.company_name ? <span className="font-normal text-slate-500"> · {s.company_name}</span> : null}
+                        </span>
+                        <span className="block truncate text-[13px] text-slate-500">
+                          {s.origin} → {s.destination}
+                        </span>
+                      </span>
+                      <StatusBadge status={s.status} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                compact
+                icon={Truck}
+                title="No shipments yet"
+                description="Create one directly, or convert a won enquiry into a shipment."
+                action={
+                  canWrite(me.role, "shipments") ? (
+                    <ButtonLink href="/admin/shipments/new" size="sm">
+                      New shipment
+                    </ButtonLink>
+                  ) : undefined
+                }
+              />
+            )}
+          </Card>
         ) : null}
       </div>
 
-      {/* Exception Alerts */}
-      {exceptions.length > 0 && (
-        <div className="rounded-2xl border border-red-200/80 bg-red-50/50 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={16} className="text-red-500" />
-            <span className="text-sm font-semibold text-red-700">Needs Attention ({exceptions.length})</span>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {exceptions.slice(0, 6).map((e, i) => (
-              <Link
-                key={i}
-                href={e.href}
-                className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-white border border-red-100 hover:border-red-300 transition-colors group"
-              >
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-slate-800 truncate">{e.label}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{e.sub}</p>
+      {/* Enquiry performance + activity */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {can("inquiries") ? (
+          <Card>
+            <CardHeader title="Enquiries" description="Received each month, and how they ended up." />
+            <DashboardCharts data={monthly.map((m) => ({ name: m.month, value: m.n }))} />
+            <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-slate-200 pt-5 sm:grid-cols-6">
+              {ENQUIRY_STAGES.map((stage) => (
+                <div key={stage}>
+                  <dt className="text-[13px] text-slate-500">{statusLabel(stage)}</dt>
+                  <dd className="mt-0.5 text-lg font-medium tabular-nums text-[var(--navy)]">{enquiries[stage] || 0}</dd>
                 </div>
-                <ArrowRight size={14} className="text-slate-400 group-hover:text-red-500 shrink-0" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Shipment Pipeline */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-800">Shipment Pipeline</h2>
-          <Link href="/admin/shipments" className="text-xs text-[var(--accent)] font-semibold hover:underline flex items-center gap-1">
-            View all <ArrowUpRight size={12} />
-          </Link>
-        </div>
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {shipmentStages.map((stage) => {
-            const count = shipmentPipeline[stage] || 0;
-            const label = stage.replace(/_/g, " ");
-            return (
-              <Link
-                key={stage}
-                href={`/admin/shipments?status=${stage}`}
-                className="flex-1 min-w-[100px] rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-center hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 transition-colors group"
-              >
-                <p className="text-2xl font-bold text-slate-800 group-hover:text-[var(--accent)] transition-colors">{count}</p>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1 capitalize">{label}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Charts + Pipeline Row */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Inquiry Pipeline */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-800">Inquiry Pipeline</h2>
-            <Link href="/admin/inquiries" className="text-xs text-[var(--accent)] font-semibold hover:underline flex items-center gap-1">
-              View all <ArrowUpRight size={12} />
-            </Link>
-          </div>
-          <DashboardCharts data={chartData} />
-        </div>
-
-        {/* Quick Stats */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">Overview</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <StatBlock label="Total Inquiries" value={inquiryCount || 0} icon={<Inbox size={16} />} />
-            <StatBlock label="Total Shipments" value={shipmentCount || 0} icon={<Box size={16} />} />
-            <StatBlock label="Total Clients" value={clientCount || 0} icon={<Users size={16} />} />
-            <StatBlock
-              label="Win Rate"
-              value={
-                (pipelineCounts["won"] || 0) + (pipelineCounts["lost"] || 0) > 0
-                  ? `${Math.round(((pipelineCounts["won"] || 0) / ((pipelineCounts["won"] || 0) + (pipelineCounts["lost"] || 0))) * 100)}%`
-                  : "—"
-              }
-              icon={<TrendingUp size={16} />}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Tables */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Recent Inquiries */}
-        <div className="rounded-2xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between p-5 pb-3">
-            <h2 className="text-sm font-semibold text-slate-800">Recent Inquiries</h2>
-            <Link href="/admin/inquiries" className="text-xs text-[var(--accent)] font-semibold hover:underline">
-              View all →
-            </Link>
-          </div>
-          <div className="px-5 pb-5">
-            {recentInquiries && recentInquiries.length > 0 ? (
-              <div className="space-y-2">
-                {recentInquiries.map((inq) => (
-                  <Link
-                    key={inq.id}
-                    href={`/admin/inquiries/${inq.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                      <Inbox size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-[var(--accent)]">{inq.full_name}</p>
-                      <p className="text-[11px] text-slate-500 truncate">
-                        {inq.inquiry_no} · {inq.company_name || "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {inq.priority && inq.priority !== "medium" && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${STATUS_COLORS[inq.priority] || ""}`}>
-                          {inq.priority}
-                        </span>
-                      )}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${STATUS_COLORS[inq.status] || "bg-slate-100 text-slate-600"}`}>
-                        {inq.status}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
+              ))}
+              <div>
+                <dt className="text-[13px] text-slate-500">Win rate</dt>
+                <dd className="mt-0.5 text-lg font-medium tabular-nums text-[var(--navy)]">{winRate}</dd>
               </div>
-            ) : (
-              <p className="text-sm text-slate-400 py-4 text-center">No inquiries yet.</p>
-            )}
-          </div>
-        </div>
+            </dl>
+          </Card>
+        ) : null}
 
-        {/* Recent Shipments */}
-        <div className="rounded-2xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between p-5 pb-3">
-            <h2 className="text-sm font-semibold text-slate-800">Recent Shipments</h2>
-            <Link href="/admin/shipments" className="text-xs text-[var(--accent)] font-semibold hover:underline">
-              View all →
-            </Link>
-          </div>
-          <div className="px-5 pb-5">
-            {recentShipments && recentShipments.length > 0 ? (
-              <div className="space-y-2">
-                {recentShipments.map((s) => (
-                  <Link
-                    key={s.id}
-                    href={`/admin/shipments/${s.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                      <Truck size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-[var(--accent)]">{s.shipment_no}</p>
-                      <p className="text-[11px] text-slate-500 truncate">
-                        {s.origin} → {s.destination}
-                      </p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0 ${STATUS_COLORS[s.status] || "bg-slate-100 text-slate-600"}`}>
-                      {s.status?.replace(/_/g, " ")}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400 py-4 text-center">No shipments yet.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Feed */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-slate-800 mb-4">Recent Activity</h2>
-        {recentActivity && recentActivity.length > 0 ? (
-          <div className="space-y-3">
-            {recentActivity.map((a) => (
-              <div key={a.id} className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
-                  <Clock size={14} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700">
-                    <span className="font-semibold">{a.actor_email?.split("@")[0] || "System"}</span>
-                    {" "}{a.action}{" "}
-                    <span className="text-slate-500">{a.entity_type}</span>
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400 text-center py-4">No activity recorded yet.</p>
-        )}
+        <Card>
+          <CardHeader title="Recent activity" description="What the team has done lately." />
+          {activity.length ? (
+            <ol className="space-y-4">
+              {activity.map((a) => {
+                const who = a.actor_name || (a.actor_email && a.actor_email !== "system" ? a.actor_email.split("@")[0] : "System");
+                return (
+                  <li key={a.id} className="flex items-start gap-3">
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600">{initials(who)}</span>
+                    <p className="min-w-0 flex-1 text-sm leading-6 text-slate-600">
+                      <span className="font-medium text-[var(--navy)]">{who}</span> {a.action.replace(/_/g, " ")}
+                      <span className="block text-[13px] text-slate-400">{timeAgo(a.created_at)}</span>
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : (
+            <EmptyState compact icon={CalendarClock} title="No activity yet" description="Status changes, notes and payments are listed here as the team works." />
+          )}
+        </Card>
       </div>
     </div>
   );
 }
 
-function KPICard({
-  icon,
-  label,
-  value,
-  href,
-  accent,
-  alert,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  href: string;
-  accent: string;
-  alert?: string;
-}) {
+/** First-run guide shown while the dashboard has no records at all. */
+function GettingStarted({ isAdmin, canShip }: { isAdmin: boolean; canShip: boolean }) {
+  const steps = [
+    { title: "Add your first client", body: "Shipments and invoices are always tied to a client company.", href: "/admin/clients/new", cta: "Add a client", show: true },
+    { title: "Create a shipment", body: "Or wait for a quote request from the website and convert it.", href: "/admin/shipments/new", cta: "New shipment", show: canShip },
+    { title: "Invite your team", body: "Give each person their own sign-in and the right level of access.", href: "/admin/staff", cta: "Manage staff", show: isAdmin },
+    { title: "Check company details", body: "Confirm the name, address and contact details staff will see.", href: "/admin/settings", cta: "Open settings", show: isAdmin },
+  ].filter((s) => s.show);
   return (
-    <Link href={href} className="group rounded-2xl border border-slate-200 bg-white p-4 hover:border-[var(--accent)]/30 hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-200">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl ${accent} flex items-center justify-center`}>{icon}</div>
-        <ArrowUpRight size={14} className="text-slate-300 group-hover:text-[var(--accent)] transition-colors" />
-      </div>
-      <p className="text-2xl font-bold text-slate-900 tracking-tight">{value}</p>
-      <p className="text-xs text-slate-500 font-medium mt-0.5">{label}</p>
-      {alert && <p className="text-[10px] font-semibold text-red-500 mt-1">{alert}</p>}
-    </Link>
-  );
-}
-
-function StatBlock({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
-  return (
-    <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-      <div className="flex items-center gap-2 mb-1.5 text-slate-400">{icon}<span className="text-[11px] font-medium">{label}</span></div>
-      <p className="text-xl font-bold text-slate-800">{value}</p>
-    </div>
+    <Card>
+      <CardHeader title="Get set up" description="The dashboard is empty. These steps get it ready for real work." />
+      <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {steps.map((s, i) => (
+          <li key={s.href} className="flex flex-col rounded-xl border border-slate-200 p-4">
+            <span className="text-xs tabular-nums text-slate-400">Step {i + 1}</span>
+            <span className="mt-1 text-[15px] font-medium text-[var(--navy)]">{s.title}</span>
+            <span className="mt-1 flex-1 text-[13px] leading-5 text-slate-500">{s.body}</span>
+            <ButtonLink href={s.href} variant="secondary" size="sm" className="mt-4 self-start">
+              {s.cta}
+            </ButtonLink>
+          </li>
+        ))}
+      </ol>
+    </Card>
   );
 }

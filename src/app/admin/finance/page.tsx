@@ -1,142 +1,218 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { AlertTriangle, Banknote, FileText, Hourglass, Plus, Receipt, SearchX } from "lucide-react";
+import {
+  ButtonLink,
+  Callout,
+  EmptyState,
+  FilterTabs,
+  PageHeader,
+  StatCard,
+  StatusBadge,
+  TableCard,
+  cx,
+  formatDate,
+  rowLinkClass,
+  statusLabel,
+  tableClass,
+  tdClass,
+  thClass,
+  trClass,
+} from "@/components/admin/ui";
 import { query } from "@/lib/db/pool";
-import { formatTotals, refreshOverdueInvoices } from "@/lib/finance";
+import { money, refreshOverdueInvoices } from "@/lib/finance";
+import { MoneyLines } from "@/components/admin/MoneyLines";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+
+const STATUSES = ["draft", "sent", "overdue", "paid", "void"];
+const LIMIT = 200;
 
 type InvoiceRow = {
   id: string;
   invoice_no: string;
   client_id: string;
-  clients: { company_name: string } | null;
-  currency: string | null;
+  company_name: string | null;
+  currency: string;
   total: number;
+  paid: number;
   status: string;
   due_date: string | null;
   created_at: string;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  sent: "bg-blue-100 text-blue-700",
-  paid: "bg-emerald-100 text-emerald-700",
-  overdue: "bg-red-100 text-red-700",
-  void: "bg-slate-100 text-slate-400",
-};
+export default async function FinancePage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const params = await searchParams;
+  if (!createServiceRoleClient()) return <Callout tone="warning" title="The database is not connected." />;
 
-export default async function FinancePage() {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
+  const status = STATUSES.includes(params.status || "") ? (params.status as string) : null;
 
   await refreshOverdueInvoices();
-  const { data: rawInvoices } = await supabase
-    .from("invoices")
-    .select("id, invoice_no, client_id, clients(company_name), currency, total, status, due_date, created_at")
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const [{ rows: invoices }, { rows: counts }, { rows: totals }] = await Promise.all([
+    query<InvoiceRow>(
+      `SELECT i.id, i.invoice_no, i.client_id, c.company_name, COALESCE(i.currency, 'USD') AS currency,
+              i.total, COALESCE(p.paid, 0) AS paid, i.status, i.due_date, i.created_at
+         FROM invoices i
+         LEFT JOIN clients c ON c.id = i.client_id
+         LEFT JOIN (SELECT invoice_id, SUM(amount) AS paid FROM payments GROUP BY invoice_id) p ON p.invoice_id = i.id
+        WHERE ($1::text IS NULL OR i.status = $1)
+        ORDER BY i.created_at DESC
+        LIMIT ${LIMIT + 1}`,
+      [status],
+    ),
+    query<{ status: string; n: number }>("SELECT status, COUNT(*)::int AS n FROM invoices GROUP BY 1"),
+    // Totals across all invoices (not just the ones listed), per currency, net of payments.
+    query<{ currency: string; invoiced: number; collected: number; outstanding: number; overdue: number }>(
+      `SELECT COALESCE(i.currency, 'USD') AS currency,
+              SUM(i.total) AS invoiced,
+              COALESCE(SUM(p.paid), 0) AS collected,
+              COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue') THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS outstanding,
+              COALESCE(SUM(CASE WHEN i.status = 'overdue' THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS overdue
+         FROM invoices i
+         LEFT JOIN (SELECT invoice_id, SUM(amount) AS paid FROM payments GROUP BY invoice_id) p ON p.invoice_id = i.id
+        WHERE i.status NOT IN ('void', 'draft')
+        GROUP BY 1`,
+    ),
+  ]);
 
-  const invoices = (rawInvoices || []) as unknown as InvoiceRow[];
-
-  // Totals across all invoices (not just the 100 listed), per currency, net of payments.
-  const { rows: money } = await query<{ currency: string; invoiced: number; collected: number; outstanding: number; overdue: number }>(
-    `SELECT COALESCE(i.currency, 'USD') AS currency,
-            SUM(i.total) AS invoiced,
-            COALESCE(SUM(p.paid), 0) AS collected,
-            COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue') THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS outstanding,
-            COALESCE(SUM(CASE WHEN i.status = 'overdue' THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS overdue
-       FROM invoices i
-       LEFT JOIN (SELECT invoice_id, SUM(amount) AS paid FROM payments GROUP BY invoice_id) p ON p.invoice_id = i.id
-      WHERE i.status NOT IN ('void', 'draft')
-      GROUP BY 1`,
-  );
   const per = (k: "invoiced" | "collected" | "outstanding" | "overdue") =>
-    formatTotals(money.filter((r) => Number(r[k]) > 0).map((r) => ({ currency: r.currency, total: Number(r[k]) })));
+    <MoneyLines totals={totals.filter((r) => Number(r[k]) > 0).map((r) => ({ currency: r.currency, total: Number(r[k]) }))} />;
+  const has = (k: "collected" | "outstanding" | "overdue") => totals.some((r) => Number(r[k]) > 0);
+
+  const total = counts.reduce((sum, c) => sum + c.n, 0);
+  const countFor = (value: string) => counts.find((c) => c.status === value)?.n || 0;
+  const shown = invoices.slice(0, LIMIT);
+
+  const newInvoice = (
+    <ButtonLink href="/admin/finance/new">
+      <Plus size={16} aria-hidden /> New invoice
+    </ButtonLink>
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Finance & Invoicing</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{invoices?.length || 0} invoices</p>
+    <div>
+      <PageHeader title="Finance" description="Invoices, what has been paid and what is still owed." actions={newInvoice} />
+
+      <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Total invoiced" value={per("invoiced")} icon={Receipt} hint="Sent, overdue and paid invoices" />
+          <StatCard label="Collected" value={per("collected")} icon={Banknote} tone={has("collected") ? "good" : "default"} hint="Payments received" />
+          <StatCard
+            label="Outstanding"
+            value={per("outstanding")}
+            icon={Hourglass}
+            tone={has("outstanding") ? "warn" : "default"}
+            hint="Billed but not yet paid"
+            href="/admin/finance?status=sent"
+          />
+          <StatCard
+            label="Overdue"
+            value={per("overdue")}
+            icon={AlertTriangle}
+            tone={has("overdue") ? "bad" : "default"}
+            hint="Past the due date"
+            href="/admin/finance?status=overdue"
+          />
         </div>
-        <Link
-          href="/admin/finance/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors shadow-sm"
-        >
-          <Plus size={16} /> Create Invoice
-        </Link>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total invoiced", value: per("invoiced"), color: "text-slate-800" },
-          { label: "Collected", value: per("collected"), color: "text-emerald-600" },
-          { label: "Outstanding", value: per("outstanding"), color: "text-amber-600" },
-          { label: "Overdue", value: per("overdue"), color: "text-red-600" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-            <p className={`mt-1 text-xl font-bold leading-tight sm:text-2xl ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
-      </div>
+        {total === 0 ? (
+          <TableCard>
+            <EmptyState
+              icon={FileText}
+              title="No invoices yet"
+              description="An invoice bills a client for freight, customs or handling. Create one, mark it as sent, then record payments as they come in."
+              action={newInvoice}
+            />
+          </TableCard>
+        ) : (
+          <div className="space-y-4">
+            <FilterTabs
+              items={[
+                { label: "All", href: "/admin/finance", count: total, active: !status },
+                ...STATUSES.map((s) => ({
+                  label: statusLabel(s),
+                  href: `/admin/finance?status=${s}`,
+                  count: countFor(s),
+                  active: status === s,
+                })),
+              ]}
+            />
 
-      {/* Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Invoice</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Client</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Amount</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider hidden sm:table-cell">Due</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {(invoices || []).length > 0 ? (
-                invoices.map((inv) => {
-                  const client = Array.isArray(inv.clients) ? inv.clients[0] : inv.clients;
-                  return (
-                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/finance/${inv.id}`} className="font-semibold text-slate-800 hover:text-[var(--accent)]">
-                          {inv.invoice_no}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{client?.company_name || "—"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-800">
-                        {inv.currency} {Number(inv.total).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${STATUS_COLORS[inv.status] || ""}`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400 hidden sm:table-cell">
-                        {inv.due_date ? new Date(inv.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/finance/${inv.id}`} className="text-slate-400 group-hover:text-[var(--accent)]">
-                          <ArrowUpRight size={16} />
-                        </Link>
-                      </td>
+            <TableCard
+              footer={
+                shown.length
+                  ? invoices.length > LIMIT
+                    ? `Showing the latest ${LIMIT} invoices. Use the status filters to narrow the list.`
+                    : `${shown.length} ${shown.length === 1 ? "invoice" : "invoices"}`
+                  : undefined
+              }
+            >
+              {shown.length ? (
+                <table className={cx(tableClass, "min-w-[860px]")}>
+                  <thead>
+                    <tr>
+                      <th className={thClass}>Invoice</th>
+                      <th className={thClass}>Client</th>
+                      <th className={cx(thClass, "text-right")}>Amount</th>
+                      <th className={cx(thClass, "text-right")}>Paid so far</th>
+                      <th className={cx(thClass, "text-right")}>Balance</th>
+                      <th className={thClass}>Status</th>
+                      <th className={thClass}>Due</th>
                     </tr>
-                  );
-                })
+                  </thead>
+                  <tbody>
+                    {shown.map((inv) => {
+                      const paid = Number(inv.paid);
+                      const balance = Math.max(Number(inv.total) - paid, 0);
+                      const settled = inv.status === "void" || inv.status === "paid";
+                      return (
+                        <tr key={inv.id} className={trClass}>
+                          <td className={cx(tdClass, "whitespace-nowrap")}>
+                            <Link href={`/admin/finance/${inv.id}`} className={rowLinkClass}>
+                              {inv.invoice_no}
+                            </Link>
+                            <p className="text-[13px] text-slate-500">Issued {formatDate(inv.created_at)}</p>
+                          </td>
+                          <td className={tdClass}>
+                            {inv.company_name ? (
+                              <Link href={`/admin/clients/${inv.client_id}`} className="text-[var(--navy)] underline-offset-4 hover:underline">
+                                {inv.company_name}
+                              </Link>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className={cx(tdClass, "whitespace-nowrap text-right font-medium tabular-nums text-[var(--navy)]")}>
+                            {money(Number(inv.total), inv.currency)}
+                          </td>
+                          <td className={cx(tdClass, "whitespace-nowrap text-right tabular-nums")}>{paid > 0 ? money(paid, inv.currency) : "—"}</td>
+                          <td className={cx(tdClass, "whitespace-nowrap text-right tabular-nums", !settled && balance > 0 && "text-[var(--navy)]")}>
+                            {settled ? "—" : money(balance, inv.currency)}
+                          </td>
+                          <td className={tdClass}>
+                            <StatusBadge status={inv.status} />
+                          </td>
+                          <td className={cx(tdClass, "whitespace-nowrap", inv.status === "overdue" && "font-medium text-red-700")}>
+                            {inv.due_date ? formatDate(inv.due_date) : "No due date"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                    No invoices yet. Create your first invoice.
-                  </td>
-                </tr>
+                <EmptyState
+                  icon={SearchX}
+                  title={`No ${statusLabel(status).toLowerCase()} invoices`}
+                  description="Nothing has this status right now. Show all invoices to see the rest."
+                  action={
+                    <ButtonLink href="/admin/finance" variant="secondary">
+                      Show all invoices
+                    </ButtonLink>
+                  }
+                />
               )}
-            </tbody>
-          </table>
-        </div>
+            </TableCard>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,51 +1,63 @@
 "use client";
 
-import { useTransition } from "react";
 import { updateDeclarationStatus } from "@/app/admin/customs/actions";
+import { ActionButton } from "./ui-client";
+import { Card, CardHeader } from "./ui";
 
-const TRANSITIONS: Record<string, { label: string; next: string; color: string }[]> = {
-  draft: [{ label: "Submit", next: "submitted", color: "bg-blue-600 text-white hover:bg-blue-700" }],
-  submitted: [
-    { label: "Mark Query", next: "query", color: "bg-amber-600 text-white hover:bg-amber-700" },
-    { label: "Release", next: "released", color: "bg-emerald-600 text-white hover:bg-emerald-700" },
-  ],
-  query: [
-    { label: "Amend & Resubmit", next: "amended", color: "bg-purple-600 text-white hover:bg-purple-700" },
-  ],
-  amended: [
-    { label: "Mark Query", next: "query", color: "bg-amber-600 text-white hover:bg-amber-700" },
-    { label: "Release", next: "released", color: "bg-emerald-600 text-white hover:bg-emerald-700" },
-  ],
+type Step = { label: string; next: string; primary?: boolean; success: string; confirm?: string };
+
+const RAISE_QUERY: Step = { label: "Record a customs query", next: "query", success: "Marked as under query" };
+const RELEASE: Step = {
+  label: "Mark as released",
+  next: "released",
+  primary: true,
+  success: "Declaration released",
+  confirm: "Click again to release",
 };
 
-export function DeclarationStatusActions({
-  declarationId,
-  currentStatus,
-}: {
-  declarationId: string;
-  currentStatus: string;
-}) {
-  const [pending, startTransition] = useTransition();
-  const actions = TRANSITIONS[currentStatus] || [];
-  if (actions.length === 0) return null;
+/** What can happen next from each status, and how to explain it. */
+const NEXT: Record<string, { hint: string; steps: Step[] }> = {
+  draft: {
+    hint: "Once the declaration has been lodged with customs, mark it as submitted. Today is recorded as the submission date.",
+    steps: [{ label: "Mark as submitted", next: "submitted", primary: true, success: "Declaration marked as submitted" }],
+  },
+  submitted: {
+    hint: "Waiting on customs. Record a query if they ask for more information, or release the declaration once the cargo is cleared. A release cannot be undone here.",
+    steps: [RAISE_QUERY, RELEASE],
+  },
+  query: {
+    hint: "Record what customs asked for and the reply deadline in the details below. When you have answered them, mark the declaration as amended.",
+    steps: [{ label: "Mark as amended and resubmitted", next: "amended", primary: true, success: "Declaration marked as amended" }],
+  },
+  amended: {
+    hint: "The amended declaration is back with customs. Record another query if they raise one, or release it once the cargo is cleared. A release cannot be undone here.",
+    steps: [RAISE_QUERY, RELEASE],
+  },
+};
+
+export function DeclarationStatusActions({ declarationId, currentStatus }: { declarationId: string; currentStatus: string }) {
+  const next = NEXT[currentStatus];
+  if (!next) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {actions.map((a) => (
-        <button
-          key={a.next}
-          disabled={pending}
-          onClick={() => {
-            const fd = new FormData();
-            fd.set("id", declarationId);
-            fd.set("status", a.next);
-            startTransition(() => updateDeclarationStatus(fd));
-          }}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${a.color}`}
-        >
-          {pending ? "Updating…" : a.label}
-        </button>
-      ))}
-    </div>
+    <Card>
+      <CardHeader title="Next step" description={next.hint} />
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {next.steps.map((step) => (
+          <ActionButton
+            key={step.next}
+            action={updateDeclarationStatus}
+            fields={{ id: declarationId, status: step.next }}
+            variant={step.primary ? "primary" : "secondary"}
+            size="md"
+            success={step.success}
+            error="The status could not be changed. Try again."
+            confirm={step.confirm}
+          >
+            {step.label}
+          </ActionButton>
+        ))}
+      </div>
+    </Card>
   );
 }

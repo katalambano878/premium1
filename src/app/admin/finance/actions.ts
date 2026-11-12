@@ -83,7 +83,18 @@ export async function updateInvoiceStatus(formData: FormData) {
   if (!supabase) return;
 
   const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-  if (status === "paid") updates.paid_at = new Date().toISOString();
+  if (status === "paid") {
+    updates.paid_at = new Date().toISOString();
+    // "Mark as paid" records the remaining balance as a payment, so Collected and Balance always agree.
+    await query(
+      `INSERT INTO payments (invoice_id, amount, method, reference)
+       SELECT i.id, i.total - COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = i.id), 0), 'other', 'Marked as paid'
+         FROM invoices i
+        WHERE i.id = $1 AND i.status <> 'void'
+          AND i.total - COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = i.id), 0) > 0`,
+      [invoiceId],
+    );
+  }
   ensure(await supabase.from("invoices").update(updates).eq("id", invoiceId), "update the invoice status");
 
   await logActivity({ entityType: "invoice", entityId: invoiceId, action: `marked invoice as ${status}` });
@@ -97,6 +108,16 @@ export async function addPayment(formData: FormData) {
   const invoiceId = id(formData, "invoice_id");
   const amount = num(formData, "amount");
   if (amount === null || amount <= 0) throw new Error("Enter a payment amount above 0.");
+
+  const { rows: state } = await query<{ status: string; balance: number }>(
+    `SELECT i.status, i.total - COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = i.id), 0) AS balance
+       FROM invoices i WHERE i.id = $1`,
+    [invoiceId],
+  );
+  if (!state[0]) throw new Error("This invoice no longer exists.");
+  if (state[0].status === "void") throw new Error("This invoice is void. Payments cannot be added to it.");
+  if (state[0].status === "draft") throw new Error("Mark the invoice as sent before recording a payment.");
+  if (round2(amount) > round2(Number(state[0].balance))) throw new Error("That is more than the balance still owed on this invoice.");
 
   const { rows } = await query<{ paid: number; total: number; status: string }>(
     `WITH p AS (

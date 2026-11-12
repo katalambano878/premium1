@@ -132,13 +132,15 @@ describe("shipment tracking (/api/track)", () => {
        RETURNING id, shipment_no`,
       [inquiryId],
     );
-    await query("INSERT INTO shipment_events (shipment_id, event_type, message) VALUES ($1, 'status', 'Departed Shanghai')", [rows[0].id]);
+    await query("INSERT INTO shipment_events (shipment_id, event_type, message) VALUES ($1, 'status_change', 'Departed Shanghai')", [rows[0].id]);
+    await query("INSERT INTO shipment_events (shipment_id, event_type, message) VALUES ($1, 'note', 'Client owes us for the last job')", [rows[0].id]);
 
     const byShipment = await lookup(rows[0].shipment_no.toLowerCase());
     expect(byShipment.status).toBe(200);
     const body = await byShipment.json();
     expect(body).toMatchObject({ shipment_no: rows[0].shipment_no, status: "in_transit" });
-    expect(body.events[0].message).toBe("Departed Shanghai");
+    expect(body.events.map((e: { message: string }) => e.message)).toEqual(["Departed Shanghai"]);
+    expect(JSON.stringify(body)).not.toContain("owes us"); // staff notes never reach the public page
 
     const byInquiry = await lookup(inquiry_no);
     expect((await byInquiry.json()).shipment_no).toBe(rows[0].shipment_no);

@@ -16,6 +16,8 @@ function clientFields(formData: FormData, defaultTier: (typeof CLIENT_TIERS)[num
   const phone = text(formData, "phone", 40);
   if (!company_name || !contact_name || !phone) throw new Error("Company, contact name and phone are required.");
   if (!email || !isEmail(email)) throw new Error("Enter a valid email address.");
+  const creditLimit = num(formData, "credit_limit");
+  if (creditLimit !== null && creditLimit < 0) throw new Error("The credit limit cannot be negative.");
   return {
     company_name,
     contact_name,
@@ -24,7 +26,7 @@ function clientFields(formData: FormData, defaultTier: (typeof CLIENT_TIERS)[num
     address: text(formData, "address", 500),
     tier: formData.get("tier") ? oneOf(formData, "tier", CLIENT_TIERS) : defaultTier,
     industry: text(formData, "industry", 120),
-    credit_limit: num(formData, "credit_limit"),
+    credit_limit: creditLimit,
     payment_terms: formData.get("payment_terms") ? oneOf(formData, "payment_terms", PAYMENT_TERMS) : "net_30",
   };
 }
@@ -71,4 +73,5 @@ export async function createClient(formData: FormData) {
 
   await logActivity({ entityType: "client", entityId: data?.id, action: "created client", metadata: { company: fields.company_name } });
   revalidatePath("/admin/clients");
+  return data?.id as string | undefined;
 }

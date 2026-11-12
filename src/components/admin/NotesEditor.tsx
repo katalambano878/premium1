@@ -1,7 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionForm, SubmitButton } from "./ui-client";
+import { Field, Textarea } from "./ui";
 
+/** Internal cost and service notes for a shipment. Staff only. */
 export function NotesEditor({
   action,
   entityId,
@@ -13,42 +15,19 @@ export function NotesEditor({
   costNotes: string;
   serviceNotes: string;
 }) {
-  const [pending, startTransition] = useTransition();
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    fd.set("id", entityId);
-    startTransition(() => action(fd));
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="text-xs text-slate-500 block mb-1">Cost Notes</label>
-        <textarea
-          name="cost_notes"
-          rows={3}
-          defaultValue={costNotes}
-          className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-        />
+    <ActionForm action={action} hidden={{ id: entityId }} success="Notes saved" error="The notes could not be saved. Try again.">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Cost notes" htmlFor={`cost-notes-${entityId}`} optional hint="Freight, port and handling charges, supplier quotes.">
+          <Textarea id={`cost-notes-${entityId}`} name="cost_notes" rows={4} maxLength={5000} defaultValue={costNotes} />
+        </Field>
+        <Field label="Service notes" htmlFor={`service-notes-${entityId}`} optional hint="Special handling, delivery instructions, anything the team should know.">
+          <Textarea id={`service-notes-${entityId}`} name="service_notes" rows={4} maxLength={5000} defaultValue={serviceNotes} />
+        </Field>
       </div>
-      <div>
-        <label className="text-xs text-slate-500 block mb-1">Service Notes</label>
-        <textarea
-          name="service_notes"
-          rows={3}
-          defaultValue={serviceNotes}
-          className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-        />
+      <div className="mt-5 flex justify-end">
+        <SubmitButton pendingLabel="Saving…">Save notes</SubmitButton>
       </div>
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full text-sm py-2 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50"
-      >
-        {pending ? "Saving..." : "Save Notes"}
-      </button>
-    </form>
+    </ActionForm>
   );
 }

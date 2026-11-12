@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
     .from("shipment_events")
     .select("id, event_type, message, created_at")
     .eq("shipment_id", shipment.id as string)
+    // Public: milestones and updates staff post for the client. Internal "note" events stay in the dashboard.
+    .in("event_type", ["created", "status_change", "update"])
     .order("created_at", { ascending: false });
 
   return NextResponse.json({

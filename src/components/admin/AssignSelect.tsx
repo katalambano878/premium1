@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { AutoSelect } from "./ui-client";
 
 interface AssignSelectProps {
   currentAssignee: string | null;
@@ -9,31 +9,17 @@ interface AssignSelectProps {
   entityId: string;
 }
 
+/** Picks who owns a record; saves as soon as it changes. */
 export function AssignSelect({ currentAssignee, staff, action, entityId }: AssignSelectProps) {
-  const [pending, startTransition] = useTransition();
-
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const fd = new FormData();
-    fd.set("id", entityId);
-    fd.set("assigned_to", e.target.value);
-    startTransition(() => {
-      action(fd);
-    });
-  };
-
   return (
-    <select
+    <AutoSelect
+      action={action}
+      name="assigned_to"
       value={currentAssignee || ""}
-      onChange={handleChange}
-      disabled={pending}
-      className="text-sm px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-50"
-    >
-      <option value="">Unassigned</option>
-      {staff.map((s) => (
-        <option key={s.id} value={s.id}>
-          {s.full_name}
-        </option>
-      ))}
-    </select>
+      fields={{ id: entityId }}
+      ariaLabel="Assigned to"
+      success="Assignment updated"
+      options={[{ value: "", label: "Unassigned" }, ...staff.map((s) => ({ value: s.id, label: s.full_name }))]}
+    />
   );
 }

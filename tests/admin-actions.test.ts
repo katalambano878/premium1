@@ -130,6 +130,30 @@ describe("invoices and payments", () => {
     await expect(addPayment(form({ invoice_id: invoiceId, amount: 0 }))).rejects.toThrow(/above 0/);
   });
 
+  it("refuses overpayments and payments on draft or void invoices", async () => {
+    await signInAs("admin");
+    const invoiceId = (await createInvoice(
+      form({ client_id: await newClient(), currency: "USD", item_count: 1, item_desc_0: "Freight", item_qty_0: 1, item_price_0: 100 }),
+    )) as string;
+    await expect(addPayment(form({ invoice_id: invoiceId, amount: 50 }))).rejects.toThrow(/Mark the invoice as sent/);
+    await updateInvoiceStatus(form({ id: invoiceId, status: "sent" }));
+    await expect(addPayment(form({ invoice_id: invoiceId, amount: 150 }))).rejects.toThrow(/more than the balance/);
+    await updateInvoiceStatus(form({ id: invoiceId, status: "void" }));
+    await expect(addPayment(form({ invoice_id: invoiceId, amount: 50 }))).rejects.toThrow(/void/);
+  });
+
+  it("records the balance as a payment when an invoice is marked paid", async () => {
+    await signInAs("admin");
+    const invoiceId = (await createInvoice(
+      form({ client_id: await newClient(), currency: "USD", item_count: 1, item_desc_0: "Freight", item_qty_0: 1, item_price_0: 400 }),
+    )) as string;
+    await updateInvoiceStatus(form({ id: invoiceId, status: "sent" }));
+    await addPayment(form({ invoice_id: invoiceId, amount: 150 }));
+    await updateInvoiceStatus(form({ id: invoiceId, status: "paid" }));
+    const { rows } = await query("SELECT SUM(amount) AS paid FROM payments WHERE invoice_id = $1", [invoiceId]);
+    expect(Number(rows[0].paid)).toBe(400);
+  });
+
   it("turns sent invoices past their due date into overdue", async () => {
     await signInAs("admin");
     const invoiceId = await createInvoice(
@@ -144,12 +168,14 @@ describe("invoices and payments", () => {
 describe("enquiries to shipments", () => {
   it("converts an enquiry once, reusing the client by email in any case", async () => {
     const me = await signInAs("operations");
+    const uniqueEmail = `reuse-${Date.now()}@example.com`;
     const existing = (
       await query<{ id: string }>(
-        "INSERT INTO clients (company_name, contact_name, email, phone) VALUES ('Mensah Imports', 'Ama', 'ama@example.com', '1') RETURNING id",
+        "INSERT INTO clients (company_name, contact_name, email, phone) VALUES ('Mensah Imports', 'Ama', $1, '1') RETURNING id",
+        [uniqueEmail],
       )
     ).rows[0].id;
-    const { id: inquiryId } = await (await quote(jsonRequest("/api/inquiries", { ...validQuote, email: "AMA@Example.com" }, freshIp()))).json();
+    const { id: inquiryId } = await (await quote(jsonRequest("/api/inquiries", { ...validQuote, email: uniqueEmail.toUpperCase() }, freshIp()))).json();
 
     const to = await redirectOf(convertToShipment(form({ id: inquiryId })));
     const ship = (await query("SELECT * FROM shipments WHERE inquiry_id = $1", [inquiryId])).rows;
