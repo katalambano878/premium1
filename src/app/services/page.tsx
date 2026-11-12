@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Check, Layers } from "lucide-react";
+import { ArrowUpRight, Check, Layers, X } from "lucide-react";
 import { CTAButton, ServiceCard, StepTimeline } from "@/components/design-system";
 import { serviceImage } from "@/components/design-system/ServiceCard";
 import { PageHero } from "@/components/page/PageHero";
@@ -153,49 +153,70 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* Comparison: one white card laid out as a table */}
+      {/* Comparison: a muted "typical" card against a raised navy Premium 1 card */}
       <section className="mx-auto max-w-[1320px] px-6 py-12 sm:py-16">
         <div className="grid gap-6 lg:grid-cols-2 lg:items-end lg:gap-16">
-          <h2 className={H2}>Premium 1 vs the status quo</h2>
+          <div>
+            <span className={LABEL}>Why it matters</span>
+            <h2 className={`mt-6 ${H2}`}>Premium 1 vs the status quo</h2>
+          </div>
           <p className="text-base leading-7 text-slate-600 sm:text-lg">
             Not every shipment needs a premium forwarder—but when documentation, corridors, or OTIF stakes are high, the gaps show up fast. Here is how we are built differently.
           </p>
         </div>
 
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8" role="table" aria-label="Premium 1 compared with a typical forwarder">
-          <div className="hidden grid-cols-[10rem_1fr_1fr] gap-8 pb-4 text-sm text-slate-500 md:grid" role="row">
-            <span role="columnheader" className="sr-only">
-              Area
-            </span>
-            <span role="columnheader" className="col-start-2">
-              Typical forwarder
-            </span>
-            <span role="columnheader" className="font-medium text-[var(--navy)]">
-              Premium 1
-            </span>
-          </div>
-          {comparison.map((row, i) => (
-            <div
-              key={row.aspect}
-              role="row"
-              className={`grid gap-3 border-slate-200 py-5 last:pb-0 md:grid-cols-[10rem_1fr_1fr] md:gap-8 md:border-t ${i === 0 ? "max-md:pt-0" : "border-t"}`}
-            >
-              <p role="rowheader" className="text-lg font-medium text-[var(--navy)]">
-                {row.aspect}
-              </p>
-              <p role="cell" className="text-sm leading-6 text-slate-500 md:text-base">
-                <span className="block text-[13px] text-slate-400 md:hidden">Typical forwarder</span>
-                {row.typical}
-              </p>
-              <div role="cell" className="text-sm leading-6 text-[var(--navy)] md:text-base">
-                <span className="block text-[13px] font-normal text-[var(--accent-ink)] md:hidden">Premium 1</span>
-                <span className="flex gap-2.5 font-medium">
-                  <Check className="mt-1 h-4 w-4 shrink-0 text-[var(--accent-ink)]" strokeWidth={2} aria-hidden />
-                  {row.premium}
-                </span>
-              </div>
+        <div className="relative mt-10 grid gap-4 lg:mt-14 lg:grid-cols-2 lg:items-center lg:gap-6">
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-100/70 p-6 sm:p-8">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-xl font-medium tracking-[-0.01em] text-slate-500">Typical forwarder</h3>
+              <span className="rounded-full border border-slate-300 px-3 py-1 text-[13px] text-slate-500">What importers often get</span>
             </div>
-          ))}
+            <ul className="mt-6 divide-y divide-slate-200 border-t border-slate-200">
+              {comparison.map((row) => (
+                <li key={row.aspect} className="flex gap-4 py-4 lg:min-h-[5.5rem] lg:items-center">
+                  <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500 lg:mt-0">
+                    <X className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                  </span>
+                  <span>
+                    <span className="block text-[13px] text-slate-400">{row.aspect}</span>
+                    <span className="block text-base leading-6 text-slate-500">{row.typical}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <span
+            aria-hidden
+            className="absolute left-1/2 top-1/2 z-10 hidden h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-[#f4f4f5] bg-[var(--accent)] text-sm font-medium text-[var(--navy)] lg:inline-flex"
+          >
+            vs
+          </span>
+
+          <div className="relative overflow-hidden rounded-3xl bg-[var(--navy)] p-6 text-white shadow-[0_32px_64px_-36px_rgba(11,31,58,0.6)] sm:p-8 lg:py-10">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-xl font-medium tracking-[-0.01em]">Premium 1</h3>
+              <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[13px] font-medium text-[var(--navy)]">What you get with us</span>
+            </div>
+            <ul className="mt-6 divide-y divide-white/15 border-t border-white/15">
+              {comparison.map((row) => (
+                <li key={row.aspect} className="flex gap-4 py-4 lg:min-h-[5.5rem] lg:items-center">
+                  <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--navy)] lg:mt-0">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+                  </span>
+                  <span>
+                    <span className="block text-[13px] text-[#b8f3ec]">{row.aspect}</span>
+                    <span className="block text-base font-medium leading-6 text-white">{row.premium}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 border-t border-white/15 pt-6">
+              <CTAButton href="/quote" variant="primary" size="md">
+                Get a quote <ArrowUpRight className="h-4 w-4" />
+              </CTAButton>
+            </div>
+          </div>
         </div>
       </section>
 
