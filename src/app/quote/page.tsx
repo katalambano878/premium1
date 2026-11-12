@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHero } from "@/components/page/PageHero";
 import { SITE_SETTINGS } from "@/lib/mock";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Check, MapPin, MessageCircle, Package, Ship, User } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowUpRight, Check, MapPin, MessageCircle, Package, Ship, User } from "lucide-react";
 
 const STEPS = [
   { id: "origin", title: "Route", icon: MapPin, subtitle: "Origin & destination" },
@@ -42,6 +42,7 @@ export default function QuotePage() {
   const [step, setStep] = useState(0);
   const [trap, setTrap] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     origin: "",
     destination: "",
@@ -57,14 +58,60 @@ export default function QuotePage() {
     phone: "",
   });
 
-  const update = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const update = (k: string, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    setError("");
+  };
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
-  const prev = () => setStep((s) => Math.max(s - 1, 0));
+  // Only the visible step's fields exist in the DOM, so the browser can't check
+  // earlier steps on submit. Each step is checked here before moving on.
+  const stepProblem = (i: number): string => {
+    if (i === 0 && (!form.origin.trim() || !form.destination.trim())) return "Add where the cargo ships from and where it is going.";
+    if (i === 3) {
+      if (!form.name.trim()) return "Add your full name.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) return "Add a valid email address so we can send the quote.";
+      if (form.phone.replace(/\D/g, "").length < 7) return "Add a phone number we can reach you on.";
+    }
+    return "";
+  };
+
+  const goTo = (target: number) => {
+    // Moving forward past a step with missing details lands on that step instead.
+    for (let i = 0; i < target; i++) {
+      const problem = stepProblem(i);
+      if (problem) {
+        setStep(i);
+        setError(problem);
+        return;
+      }
+    }
+    setError("");
+    setStep(target);
+  };
+
+  const next = () => goTo(Math.min(step + 1, STEPS.length - 1));
+  const prev = () => {
+    setError("");
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (trap) return;
+    // Enter in a field on an earlier step moves forward instead of submitting.
+    if (step < STEPS.length - 1) {
+      next();
+      return;
+    }
+    for (let i = 0; i < STEPS.length; i++) {
+      const problem = stepProblem(i);
+      if (problem) {
+        setStep(i);
+        setError(problem);
+        return;
+      }
+    }
+    setError("");
     setSubmitting(true);
     try {
       const res = await fetch("/api/inquiries", {
@@ -94,9 +141,13 @@ export default function QuotePage() {
         router.push(`/quote/thanks?no=${encodeURIComponent(data.inquiry_no)}`);
         return;
       }
-      alert(data.error || "Something went wrong. Email us or use WhatsApp.");
+      setError(
+        res.status === 429
+          ? "You have sent several requests in a short time. Please wait a little, or message us on WhatsApp."
+          : data.error || "We could not send your request. Please try again, or message us on WhatsApp.",
+      );
     } catch {
-      alert("Something went wrong. Please try again or contact us directly.");
+      setError("We could not reach our server. Check your connection and try again, or message us on WhatsApp.");
     } finally {
       setSubmitting(false);
     }
@@ -127,7 +178,7 @@ export default function QuotePage() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setStep(i)}
+                  onClick={() => goTo(i)}
                   aria-current={active ? "step" : undefined}
                   className={`flex min-h-12 min-w-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[background-color,color,border-color] duration-200 ${
                     active
@@ -363,6 +414,13 @@ export default function QuotePage() {
               )}
             </div>
 
+            {error ? (
+              <p role="alert" className="mt-6 flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+                <span>{error}</span>
+              </p>
+            ) : null}
+
             <div className="mt-8 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center">
               <button
                 type="button"
@@ -411,7 +469,7 @@ export default function QuotePage() {
                   <li key={item.title}>
                     <button
                       type="button"
-                      onClick={() => setStep(i)}
+                      onClick={() => goTo(i)}
                       aria-current={on ? "step" : undefined}
                       className={`grid w-full grid-cols-[2rem_1fr] gap-3 rounded-2xl px-3 py-3 text-left transition-colors duration-300 ${
                         on ? "bg-white/10" : "hover:bg-white/5"

@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Anchor, Box, DollarSign, FileIcon, MapPin, Ship, User } from "lucide-react";
+import { ArrowLeft, Anchor, Box, FileIcon, MapPin, Ship } from "lucide-react";
 import { StatusSelect } from "@/components/admin/StatusSelect";
 import { AssignSelect } from "@/components/admin/AssignSelect";
 import { NoteForm } from "@/components/admin/NoteForm";
@@ -18,16 +18,6 @@ import {
 } from "../actions";
 
 const STATUSES = ["draft", "booked", "in_transit", "arrived", "clearing", "out_for_delivery", "delivered"];
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  booked: "bg-blue-100 text-blue-700",
-  in_transit: "bg-amber-100 text-amber-700",
-  arrived: "bg-cyan-100 text-cyan-700",
-  clearing: "bg-purple-100 text-purple-700",
-  out_for_delivery: "bg-orange-100 text-orange-700",
-  delivered: "bg-emerald-100 text-emerald-700",
-};
 
 export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -197,7 +187,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
               <div>
                 {docs && docs.length > 0 ? (
                   <div className="space-y-2">
-                    {docs.map((d: any) => (
+                    {docs.map((d) => (
                       <a
                         key={d.id}
                         href={d.file_url}
@@ -244,7 +234,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Invoices</h3>
                 {invoices && invoices.length > 0 ? (
                   <div className="space-y-2">
-                    {invoices.map((inv: any) => (
+                    {invoices.map((inv) => (
                       <Link key={inv.id} href={`/admin/finance/${inv.id}`} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50">
                         <span className="text-sm font-semibold text-slate-700">{inv.invoice_no}</span>
                         <div className="flex items-center gap-2">
@@ -317,7 +307,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
             <div className="rounded-2xl border border-slate-200 bg-white p-5">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Customs</h2>
               <div className="space-y-2">
-                {customs.map((c: any) => (
+                {customs.map((c) => (
                   <Link key={c.id} href={`/admin/customs/${c.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm font-medium text-slate-700">{c.declaration_no || "Draft"}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${

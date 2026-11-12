@@ -41,7 +41,7 @@ export function SettingsForm({
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-600 block mb-1.5">WhatsApp</label>
-          <input name="whatsapp_number" defaultValue={settings.whatsapp_number || ""} className={inputClass} />
+          <input name="whatsapp" defaultValue={settings.whatsapp || ""} className={inputClass} />
         </div>
       </div>
       <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, Check, Clock, Search, Truck } from "lucide-react";
 
 interface TrackEvent {
@@ -46,16 +46,16 @@ export function TrackLookup() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<TrackResult | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ref.trim()) return;
+  const lookup = useCallback(async (value: string) => {
+    const reference = value.trim();
+    if (!reference) return;
     setLoading(true);
     setError("");
     setResult(null);
 
     try {
-      const res = await fetch(`/api/track?ref=${encodeURIComponent(ref.trim())}`);
-      const data = await res.json();
+      const res = await fetch(`/api/track?ref=${encodeURIComponent(reference)}`);
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error || "Shipment not found.");
       } else {
@@ -66,6 +66,20 @@ export function TrackLookup() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Links in client emails open as /track?ref=SHP-…, and look the shipment up straight away.
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get("ref");
+    if (fromLink) {
+      setRef(fromLink);
+      void lookup(fromLink);
+    }
+  }, [lookup]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    void lookup(ref);
   };
 
   return (

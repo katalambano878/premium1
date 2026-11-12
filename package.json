@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint src middleware.ts tests",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
@@ -37,14 +41,15 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "optionalDependencies": {
+    "@img/sharp-libvips-linuxmusl-x64": "1.3.4",
+    "@img/sharp-linuxmusl-x64": "0.35.5",
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.1",
     "@tailwindcss/oxide-linux-x64-musl": "4.2.1",
     "lightningcss-linux-x64-gnu": "1.31.1",
-    "lightningcss-linux-x64-musl": "1.31.1",
-    "@img/sharp-linuxmusl-x64": "0.35.5",
-    "@img/sharp-libvips-linuxmusl-x64": "1.3.4"
+    "lightningcss-linux-x64-musl": "1.31.1"
   }
 }

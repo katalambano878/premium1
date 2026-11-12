@@ -30,7 +30,7 @@ export default async function NewDeclarationPage() {
           <label className="block text-xs font-semibold text-slate-600 mb-1.5">Shipment *</label>
           <select name="shipment_id" required className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20">
             <option value="">Select shipment</option>
-            {(shipments || []).map((s: any) => (
+            {(shipments || []).map((s) => (
               <option key={s.id} value={s.id}>{s.shipment_no} — {s.origin} → {s.destination}</option>
             ))}
           </select>

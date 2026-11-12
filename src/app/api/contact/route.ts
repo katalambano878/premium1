@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (!body || body.website) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
-    if (isRateLimited(`contact:${clientIp(request)}`, 5, 60 * 60 * 1000)) {
+    if (await isRateLimited(`contact:${clientIp(request)}`, 5, 60 * 60 * 1000)) {
       return NextResponse.json({ error: "Too many messages. Please try again later or email us directly." }, { status: 429 });
     }
 

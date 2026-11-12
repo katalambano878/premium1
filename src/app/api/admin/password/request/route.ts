@@ -9,7 +9,10 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const email = String(body.email || "").trim();
   const ok = NextResponse.json({ success: true });
-  if (!email || isRateLimited(`pwreset:${clientIp(request)}`, 5, 15 * 60 * 1000)) return ok;
+  if (!email || email.length > 200) return ok;
+  if (await isRateLimited(`pwreset:${clientIp(request)}`, 5, 15 * 60 * 1000)) return ok;
+  // At most three reset emails per account per hour, whoever asks.
+  if (await isRateLimited(`pwreset-acct:${email.toLowerCase()}`, 3, 60 * 60 * 1000)) return ok;
   try {
     const result = await createResetToken(email);
     if (!result) return ok;

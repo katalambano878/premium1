@@ -1,6 +1,20 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, CircleDollarSign, Plus } from "lucide-react";
+import { ArrowUpRight, Plus } from "lucide-react";
+import { query } from "@/lib/db/pool";
+import { formatTotals, refreshOverdueInvoices } from "@/lib/finance";
+
+type InvoiceRow = {
+  id: string;
+  invoice_no: string;
+  client_id: string;
+  clients: { company_name: string } | null;
+  currency: string | null;
+  total: number;
+  status: string;
+  due_date: string | null;
+  created_at: string;
+};
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
@@ -12,25 +26,31 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default async function FinancePage() {
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">Connect Supabase.</p>;
+  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
 
-  const { data: invoices } = await supabase
+  await refreshOverdueInvoices();
+  const { data: rawInvoices } = await supabase
     .from("invoices")
     .select("id, invoice_no, client_id, clients(company_name), currency, total, status, due_date, created_at")
     .order("created_at", { ascending: false })
     .limit(100);
 
-  const stats = { total: 0, paid: 0, outstanding: 0, overdue: 0 };
-  (invoices || []).forEach((inv: any) => {
-    const t = Number(inv.total || 0);
-    stats.total += t;
-    if (inv.status === "paid") stats.paid += t;
-    if (inv.status === "sent") stats.outstanding += t;
-    if (inv.status === "overdue") {
-      stats.outstanding += t;
-      stats.overdue += t;
-    }
-  });
+  const invoices = (rawInvoices || []) as unknown as InvoiceRow[];
+
+  // Totals across all invoices (not just the 100 listed), per currency, net of payments.
+  const { rows: money } = await query<{ currency: string; invoiced: number; collected: number; outstanding: number; overdue: number }>(
+    `SELECT COALESCE(i.currency, 'USD') AS currency,
+            SUM(i.total) AS invoiced,
+            COALESCE(SUM(p.paid), 0) AS collected,
+            COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue') THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS outstanding,
+            COALESCE(SUM(CASE WHEN i.status = 'overdue' THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS overdue
+       FROM invoices i
+       LEFT JOIN (SELECT invoice_id, SUM(amount) AS paid FROM payments GROUP BY invoice_id) p ON p.invoice_id = i.id
+      WHERE i.status NOT IN ('void', 'draft')
+      GROUP BY 1`,
+  );
+  const per = (k: "invoiced" | "collected" | "outstanding" | "overdue") =>
+    formatTotals(money.filter((r) => Number(r[k]) > 0).map((r) => ({ currency: r.currency, total: Number(r[k]) })));
 
   return (
     <div className="space-y-6">
@@ -50,14 +70,14 @@ export default async function FinancePage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Invoiced", value: stats.total, color: "text-slate-800" },
-          { label: "Collected", value: stats.paid, color: "text-emerald-600" },
-          { label: "Outstanding", value: stats.outstanding, color: "text-amber-600" },
-          { label: "Overdue", value: stats.overdue, color: "text-red-600" },
+          { label: "Total invoiced", value: per("invoiced"), color: "text-slate-800" },
+          { label: "Collected", value: per("collected"), color: "text-emerald-600" },
+          { label: "Outstanding", value: per("outstanding"), color: "text-amber-600" },
+          { label: "Overdue", value: per("overdue"), color: "text-red-600" },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-            <p className={`text-2xl font-bold ${s.color} mt-1`}>${s.value.toLocaleString()}</p>
+            <p className={`mt-1 text-xl font-bold leading-tight sm:text-2xl ${s.color}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -78,7 +98,7 @@ export default async function FinancePage() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {(invoices || []).length > 0 ? (
-                (invoices || []).map((inv: any) => {
+                invoices.map((inv) => {
                   const client = Array.isArray(inv.clients) ? inv.clients[0] : inv.clients;
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">

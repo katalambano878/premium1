@@ -15,6 +15,12 @@ import {
   Users,
 } from "lucide-react";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
+import { getSessionUser } from "@/lib/auth/session";
+import { canAccess } from "@/lib/auth/roles";
+import { query } from "@/lib/db/pool";
+import { formatTotals, money, refreshOverdueInvoices } from "@/lib/finance";
+
+type MoneyRow = { currency: string; received: number; outstanding: number; overdue: number };
 
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-100 text-blue-700",
@@ -40,11 +46,15 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function AdminDashboard() {
   const supabase = createServiceRoleClient();
   if (!supabase) {
-    return <div className="p-8 text-slate-500">Connect Supabase to view dashboard.</div>;
+    return <div className="p-8 text-slate-500">The database is not connected.</div>;
   }
 
+  const me = await getSessionUser();
+  const showFinance = !!me && canAccess(me.role, "finance");
+  if (showFinance) await refreshOverdueInvoices();
+
   const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString();
 
   const [
     { count: inquiryCount },
@@ -63,8 +73,20 @@ export default async function AdminDashboard() {
     supabase.from("inquiries").select("*", { count: "exact", head: true }),
     supabase.from("shipments").select("*", { count: "exact", head: true }),
     supabase.from("clients").select("*", { count: "exact", head: true }),
-    supabase.from("invoices").select("status, total"),
-    supabase.from("inquiries").select("status, estimated_value, created_at"),
+    // Money per currency: payments received, and what is still owed on open invoices.
+    showFinance
+      ? query<MoneyRow>(
+          `SELECT i.currency,
+                  COALESCE(SUM(p.paid), 0) AS received,
+                  COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue') THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS outstanding,
+                  COALESCE(SUM(CASE WHEN i.status = 'overdue' THEN GREATEST(i.total - COALESCE(p.paid, 0), 0) END), 0) AS overdue
+             FROM invoices i
+             LEFT JOIN (SELECT invoice_id, SUM(amount) AS paid FROM payments GROUP BY invoice_id) p ON p.invoice_id = i.id
+            WHERE i.status <> 'void'
+            GROUP BY i.currency`,
+        ).then((r) => ({ data: r.rows }))
+      : Promise.resolve({ data: [] as MoneyRow[] }),
+    supabase.from("inquiries").select("status, estimated_value, created_at").gte("created_at", yearAgo),
     supabase
       .from("inquiries")
       .select("id, inquiry_no, full_name, company_name, status, priority, created_at")
@@ -93,11 +115,9 @@ export default async function AdminDashboard() {
       .select("id, declaration_no, query_deadline")
       .eq("status", "query")
       .limit(5),
-    supabase
-      .from("invoices")
-      .select("id, invoice_no, total, due_date, client_id")
-      .eq("status", "overdue")
-      .limit(5),
+    showFinance
+      ? supabase.from("invoices").select("id, invoice_no, total, currency, due_date, client_id").eq("status", "overdue").limit(5)
+      : Promise.resolve({ data: [] }),
   ]);
 
   // Pipeline counts
@@ -112,18 +132,14 @@ export default async function AdminDashboard() {
     shipmentPipeline[s.status] = (shipmentPipeline[s.status] || 0) + 1;
   });
 
-  // Invoice aggregates
-  let totalRevenue = 0;
-  let totalOutstanding = 0;
-  let totalOverdue = 0;
-  (invoiceStats || []).forEach((inv: { status: string; total: number }) => {
-    if (inv.status === "paid") totalRevenue += Number(inv.total || 0);
-    if (inv.status === "sent") totalOutstanding += Number(inv.total || 0);
-    if (inv.status === "overdue") {
-      totalOutstanding += Number(inv.total || 0);
-      totalOverdue += Number(inv.total || 0);
-    }
-  });
+  // Money totals, kept per currency (never added across currencies)
+  const pick = (k: "received" | "outstanding" | "overdue") =>
+    ((invoiceStats || []) as MoneyRow[])
+      .filter((r) => Number(r[k]) > 0)
+      .map((r) => ({ currency: r.currency || "USD", total: Number(r[k]) }));
+  const revenueLabel = formatTotals(pick("received"));
+  const outstandingLabel = formatTotals(pick("outstanding"));
+  const overdueTotals = pick("overdue");
 
   // Monthly inquiry data for chart
   const monthlyInquiries: Record<string, number> = {};
@@ -143,12 +159,12 @@ export default async function AdminDashboard() {
       type: "customs",
       label: `Customs query: ${c.declaration_no || "Pending"}`,
       sub: "Needs response",
-      href: `/admin/customs`,
+      href: `/admin/customs/${c.id}`,
     })),
-    ...(overdueInvoices || []).map((inv: { id: string; invoice_no: string; total: number }) => ({
+    ...((overdueInvoices || []) as { id: string; invoice_no: string; total: number; currency: string }[]).map((inv) => ({
       type: "invoice",
       label: `Overdue: ${inv.invoice_no}`,
-      sub: `$${Number(inv.total).toLocaleString()}`,
+      sub: money(Number(inv.total), inv.currency),
       href: `/admin/finance/${inv.id}`,
     })),
   ];
@@ -209,21 +225,25 @@ export default async function AdminDashboard() {
           href="/admin/inquiries"
           accent="bg-amber-50 text-amber-600"
         />
-        <KPICard
-          icon={<CircleDollarSign size={20} />}
-          label="Revenue (Paid)"
-          value={`$${totalRevenue.toLocaleString()}`}
-          href="/admin/finance"
-          accent="bg-emerald-50 text-emerald-600"
-        />
-        <KPICard
-          icon={<FileText size={20} />}
-          label="Outstanding"
-          value={`$${totalOutstanding.toLocaleString()}`}
-          href="/admin/finance"
-          accent="bg-purple-50 text-purple-600"
-          alert={totalOverdue > 0 ? `$${totalOverdue.toLocaleString()} overdue` : undefined}
-        />
+        {showFinance ? (
+          <>
+            <KPICard
+              icon={<CircleDollarSign size={20} />}
+              label="Payments received"
+              value={revenueLabel}
+              href="/admin/finance"
+              accent="bg-emerald-50 text-emerald-600"
+            />
+            <KPICard
+              icon={<FileText size={20} />}
+              label="Outstanding"
+              value={outstandingLabel}
+              href="/admin/finance"
+              accent="bg-purple-50 text-purple-600"
+              alert={overdueTotals.length ? `${formatTotals(overdueTotals)} overdue` : undefined}
+            />
+          </>
+        ) : null}
       </div>
 
       {/* Exception Alerts */}
@@ -323,7 +343,7 @@ export default async function AdminDashboard() {
           <div className="px-5 pb-5">
             {recentInquiries && recentInquiries.length > 0 ? (
               <div className="space-y-2">
-                {recentInquiries.map((inq: any) => (
+                {recentInquiries.map((inq) => (
                   <Link
                     key={inq.id}
                     href={`/admin/inquiries/${inq.id}`}
@@ -368,7 +388,7 @@ export default async function AdminDashboard() {
           <div className="px-5 pb-5">
             {recentShipments && recentShipments.length > 0 ? (
               <div className="space-y-2">
-                {recentShipments.map((s: any) => (
+                {recentShipments.map((s) => (
                   <Link
                     key={s.id}
                     href={`/admin/shipments/${s.id}`}
@@ -401,7 +421,7 @@ export default async function AdminDashboard() {
         <h2 className="text-sm font-semibold text-slate-800 mb-4">Recent Activity</h2>
         {recentActivity && recentActivity.length > 0 ? (
           <div className="space-y-3">
-            {recentActivity.map((a: any) => (
+            {recentActivity.map((a) => (
               <div key={a.id} className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
                   <Clock size={14} />

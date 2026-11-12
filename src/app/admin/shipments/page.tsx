@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, Plus, Truck } from "lucide-react";
+import { ArrowUpRight, Plus } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
@@ -19,7 +19,7 @@ export default async function ShipmentsPage({
 }) {
   const params = await searchParams;
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">Connect Supabase.</p>;
+  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
 
   let query = supabase
     .from("shipments")
@@ -32,7 +32,7 @@ export default async function ShipmentsPage({
   const { data: shipments } = await query;
 
   const statusCounts: Record<string, number> = {};
-  (shipments || []).forEach((s: any) => {
+  (shipments || []).forEach((s) => {
     statusCounts[s.status] = (statusCounts[s.status] || 0) + 1;
   });
 
@@ -95,7 +95,7 @@ export default async function ShipmentsPage({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {(shipments || []).length > 0 ? (
-                (shipments || []).map((s: any) => {
+                (shipments || []).map((s) => {
                   const client = Array.isArray(s.clients) ? s.clients[0] : s.clients;
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">

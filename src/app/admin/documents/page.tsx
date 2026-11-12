@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Download, Eye, File, FileText, Image as ImageIcon, Search, Upload } from "lucide-react";
+import { Download, Eye, File, FileText, Image as ImageIcon } from "lucide-react";
 import { DocumentUpload } from "@/components/admin/DocumentUpload";
 
 const DOC_TYPE_ICONS: Record<string, string> = {
@@ -32,7 +32,7 @@ export default async function DocumentsPage({
 }) {
   const params = await searchParams;
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">Connect Supabase.</p>;
+  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
 
   const [docsResult, shipmentsResult] = await Promise.all([
     (() => {
@@ -55,7 +55,7 @@ export default async function DocumentsPage({
   const shipments = shipmentsResult.data || [];
 
   const filtered = params.q
-    ? (docs || []).filter((d: any) => {
+    ? (docs || []).filter((d) => {
         const ship = Array.isArray(d.shipments) ? d.shipments[0] : d.shipments;
         const filename = d.file_url?.split("/").pop() || "";
         return (
@@ -67,7 +67,7 @@ export default async function DocumentsPage({
     : docs || [];
 
   const typeCounts: Record<string, number> = {};
-  (docs || []).forEach((d: any) => {
+  (docs || []).forEach((d) => {
     typeCounts[d.doc_type] = (typeCounts[d.doc_type] || 0) + 1;
   });
 
@@ -110,7 +110,7 @@ export default async function DocumentsPage({
       {/* Document Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.length > 0 ? (
-          filtered.map((d: any) => {
+          filtered.map((d) => {
             const ship = Array.isArray(d.shipments) ? d.shipments[0] : d.shipments;
             const filename = d.file_url?.split("/").pop() || "Document";
             const ext = filename.split(".").pop()?.toLowerCase();

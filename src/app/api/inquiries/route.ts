@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     if (!body || body.website || body._hp) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
-    if (isRateLimited(`quote:${clientIp(request)}`, 8, 60 * 60 * 1000)) {
+    if (await isRateLimited(`quote:${clientIp(request)}`, 8, 60 * 60 * 1000)) {
       return NextResponse.json({ error: "Too many requests. Please try again later or email us directly." }, { status: 429 });
     }
 

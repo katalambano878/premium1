@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Box, DollarSign, FileText, MapPin, MessageSquare } from "lucide-react";
+import { DollarSign, FileText, MapPin, MessageSquare } from "lucide-react";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: MapPin },

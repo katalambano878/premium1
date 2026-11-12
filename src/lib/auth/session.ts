@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { query } from "@/lib/db/pool";
-import type { StaffRole } from "./roles";
+import { canWrite, type StaffRole } from "./roles";
 import { SESSION_COOKIE, SESSION_TTL_SEC, signSession, verifySession } from "./token";
 
 export interface StaffUser {
@@ -46,4 +46,15 @@ export async function setSessionCookie(email: string, role: StaffRole) {
 export async function clearSessionCookie() {
   const store = await cookies();
   store.set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+}
+
+/**
+ * Throws unless the signed-in staff member's role may change `resource`
+ * (see ROLE_PERMISSIONS in roles.ts). The role is read from the database on
+ * every call, so a demotion takes effect at once for every write.
+ */
+export async function requireRole(resource: string): Promise<StaffUser> {
+  const user = await requireStaff();
+  if (!canWrite(user.role, resource)) throw new Error(`Your role (${user.role.replace(/_/g, " ")}) cannot change ${resource}.`);
+  return user;
 }

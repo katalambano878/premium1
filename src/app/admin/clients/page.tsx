@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, Crown, Plus, Star, Users } from "lucide-react";
+import { ArrowUpRight, Crown, Plus } from "lucide-react";
 
 const TIER_COLORS: Record<string, string> = {
   vip: "bg-amber-100 text-amber-700",
@@ -15,7 +15,7 @@ export default async function ClientsPage({
 }) {
   const params = await searchParams;
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">Connect Supabase.</p>;
+  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
 
   let query = supabase
     .from("clients")
@@ -29,7 +29,7 @@ export default async function ClientsPage({
 
   const filtered = params.q
     ? (clients || []).filter(
-        (c: any) =>
+        (c) =>
           c.company_name?.toLowerCase().includes(params.q!.toLowerCase()) ||
           c.contact_name?.toLowerCase().includes(params.q!.toLowerCase()) ||
           c.email?.toLowerCase().includes(params.q!.toLowerCase())
@@ -37,7 +37,7 @@ export default async function ClientsPage({
     : clients || [];
 
   const tierCounts: Record<string, number> = {};
-  (clients || []).forEach((c: any) => {
+  (clients || []).forEach((c) => {
     const t = c.tier || "standard";
     tierCounts[t] = (tierCounts[t] || 0) + 1;
   });
@@ -100,7 +100,7 @@ export default async function ClientsPage({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.length > 0 ? (
-                filtered.map((c: any) => (
+                filtered.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-3">
                       <Link href={`/admin/clients/${c.id}`} className="font-semibold text-slate-800 hover:text-[var(--accent)]">

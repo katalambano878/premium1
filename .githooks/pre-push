@@ -1,0 +1,7 @@
+#!/bin/sh
+# Pushing to main deploys to production (Coolify webhook), so check first.
+# Enable once per clone:  git config core.hooksPath .githooks
+# Skip in an emergency:   git push --no-verify
+set -e
+echo "pre-push: lint, types and tests before deploying…"
+npm run --silent verify

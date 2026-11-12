@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, ClipboardCheck, Plus } from "lucide-react";
+import { ArrowUpRight, Plus } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
@@ -12,7 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default async function CustomsPage() {
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">Connect Supabase.</p>;
+  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
 
   const { data: declarations } = await supabase
     .from("customs_declarations")
@@ -21,7 +21,7 @@ export default async function CustomsPage() {
     .limit(100);
 
   const statusCounts: Record<string, number> = {};
-  (declarations || []).forEach((d: any) => {
+  (declarations || []).forEach((d) => {
     statusCounts[d.status] = (statusCounts[d.status] || 0) + 1;
   });
 
@@ -67,7 +67,7 @@ export default async function CustomsPage() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {(declarations || []).length > 0 ? (
-                (declarations || []).map((d: any) => {
+                (declarations || []).map((d) => {
                   const ship = Array.isArray(d.shipments) ? d.shipments[0] : d.shipments;
                   return (
                     <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group">

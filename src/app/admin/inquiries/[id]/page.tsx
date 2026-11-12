@@ -151,7 +151,7 @@ export default async function InquiryDetailPage({ params }: { params: Promise<{ 
             <div className="rounded-2xl border border-slate-200 bg-white p-5">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Attached Files</h2>
               <div className="space-y-2">
-                {files.map((f: any) => (
+                {files.map((f) => (
                   <a
                     key={f.id}
                     href={f.file_url}
@@ -176,7 +176,7 @@ export default async function InquiryDetailPage({ params }: { params: Promise<{ 
             <NoteForm action={addInquiryNote} entityId={id} fieldName="inquiry_id" />
             {notes && notes.length > 0 ? (
               <div className="mt-4 space-y-3">
-                {notes.map((n: any) => (
+                {notes.map((n) => (
                   <div key={n.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                     <p className="text-sm text-slate-700">{n.body}</p>
                     <p className="text-[11px] text-slate-400 mt-1.5">

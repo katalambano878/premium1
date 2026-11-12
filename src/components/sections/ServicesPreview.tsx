@@ -4,12 +4,12 @@ import { Container } from "@/components/design-system/Container";
 import { CTAButton } from "@/components/design-system/CTAButton";
 import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
 import { MOCK_SERVICES } from "@/lib/mock";
-import { Package, Ship, FileCheck, Warehouse, Truck, Home, Anchor, ArrowRight, ArrowUpRight } from "lucide-react";
+import { Package, Ship, FileCheck, Warehouse, Truck, Home, Anchor, ArrowRight, ArrowUpRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Package, Ship, FileCheck, Warehouse, Truck, Home, Anchor
 };
 

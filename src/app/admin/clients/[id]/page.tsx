@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, DollarSign, Mail, Phone, Truck, User } from "lucide-react";
+import { ArrowLeft, Crown, Mail, Phone, Truck, User } from "lucide-react";
 import { NoteForm } from "@/components/admin/NoteForm";
 import { ClientForm } from "@/components/admin/ClientForm";
 import { updateClient, addClientNote } from "../actions";
@@ -51,7 +51,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   // Financial Summary
   let totalRevenue = 0;
   let outstanding = 0;
-  (invoices || []).forEach((inv: any) => {
+  (invoices || []).forEach((inv) => {
     const t = Number(inv.total || 0);
     if (inv.status === "paid") totalRevenue += t;
     if (inv.status === "sent" || inv.status === "overdue") outstanding += t;
@@ -128,7 +128,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </div>
             {shipments && shipments.length > 0 ? (
               <div className="space-y-2">
-                {shipments.map((s: any) => (
+                {shipments.map((s) => (
                   <Link
                     key={s.id}
                     href={`/admin/shipments/${s.id}`}
@@ -162,7 +162,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <div className="rounded-2xl border border-slate-200 bg-white p-5">
               <h2 className="text-sm font-semibold text-slate-800 mb-4">Invoices</h2>
               <div className="space-y-2">
-                {invoices.map((inv: any) => (
+                {invoices.map((inv) => (
                   <Link key={inv.id} href={`/admin/finance/${inv.id}`} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50">
                     <span className="text-sm font-semibold text-slate-700">{inv.invoice_no}</span>
                     <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <NoteForm action={addClientNote} entityId={id} fieldName="client_id" />
             {notes && notes.length > 0 ? (
               <div className="mt-4 space-y-3">
-                {notes.map((n: any) => (
+                {notes.map((n) => (
                   <div key={n.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                     <p className="text-sm text-slate-700">{n.body}</p>
                     <p className="text-[11px] text-slate-400 mt-1.5">

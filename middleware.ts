@@ -1,13 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/token";
+import { canAccess } from "@/lib/auth/roles";
 
-// Admin routes each role may not open (mirrors src/lib/auth/roles.ts).
-const ROLE_BLOCKED: Record<string, string[]> = {
-  admin: [],
-  operations: ["/admin/staff", "/admin/settings"],
-  documentation: ["/admin/staff", "/admin/settings", "/admin/inquiries", "/admin/finance"],
-  customer_service: ["/admin/staff", "/admin/settings", "/admin/shipments", "/admin/customs", "/admin/finance"],
-};
+// Which dashboard section a path belongs to; access comes from ROLE_PERMISSIONS
+// in roles.ts, the same table the server actions check.
+const SECTIONS = ["inquiries", "shipments", "customs", "documents", "clients", "finance", "staff", "settings"];
+const sectionOf = (path: string) => SECTIONS.find((s) => path === `/admin/${s}` || path.startsWith(`/admin/${s}/`));
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -25,8 +23,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  const blocked = ROLE_BLOCKED[session.role] ?? ["/admin/"];
-  if (blocked.some((r) => path.startsWith(r))) {
+  const section = sectionOf(path);
+  if (section && !canAccess(session.role, section)) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 

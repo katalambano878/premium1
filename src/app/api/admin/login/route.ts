@@ -5,7 +5,7 @@ import type { StaffRole } from "@/lib/auth/roles";
 import { clientIp, isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
-  if (isRateLimited(`login:${clientIp(request)}`, 10, 15 * 60 * 1000)) {
+  if (await isRateLimited(`login:${clientIp(request)}`, 10, 15 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many attempts. Try again in a few minutes." }, { status: 429 });
   }
   const body = await request.json().catch(() => ({}));
@@ -13,6 +13,10 @@ export async function POST(request: Request) {
   const password = String(body.password || "");
   if (!email || !password) {
     return NextResponse.json({ error: "Enter your email and password." }, { status: 400 });
+  }
+  // Per-account limit too, so one account can't be guessed at from many addresses.
+  if (await isRateLimited(`login-acct:${email.toLowerCase().slice(0, 200)}`, 10, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many attempts. Try again in a few minutes." }, { status: 429 });
   }
   try {
     const staff = await verifyStaffPassword(email, password);

@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Send, XCircle } from "lucide-react";
-import { updateInvoiceStatus, addPayment } from "../actions";
+import { ArrowLeft } from "lucide-react";
+import { addPayment } from "../actions";
 import { InvoiceStatusButton } from "@/components/admin/InvoiceStatusButton";
 import { PaymentForm } from "@/components/admin/PaymentForm";
 
@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p>Connect Supabase.</p>;
+  if (!supabase) return <p>The database is not connected.</p>;
 
   const { data: invoice } = await supabase
     .from("invoices")
@@ -39,7 +39,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     .order("paid_at", { ascending: false });
 
   const client = Array.isArray(invoice.clients) ? invoice.clients[0] : invoice.clients;
-  const totalPaid = (payments || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
+  const totalPaid = (payments || []).reduce((s: number, p) => s + Number(p.amount), 0);
   const balance = Number(invoice.total) - totalPaid;
 
   return (
@@ -110,7 +110,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {(items || []).map((item: any) => (
+            {(items || []).map((item) => (
               <tr key={item.id}>
                 <td className="px-5 py-3 text-slate-700 font-medium">{item.description}</td>
                 <td className="px-5 py-3 text-slate-500 capitalize">{item.charge_type}</td>
@@ -142,7 +142,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         <h2 className="text-sm font-semibold text-slate-800 mb-4">Payments</h2>
         {payments && payments.length > 0 ? (
           <div className="space-y-2 mb-4">
-            {payments.map((p: any) => (
+            {payments.map((p) => (
               <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
                 <div>
                   <p className="text-sm font-semibold text-slate-700">{invoice.currency} {Number(p.amount).toLocaleString()}</p>

@@ -37,6 +37,7 @@ export function InvoiceForm({
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     fd.set("tax_rate", String(taxRate));
+    fd.set("item_count", String(items.length));
     items.forEach((item, i) => {
       fd.set(`item_desc_${i}`, item.description);
       fd.set(`item_type_${i}`, item.charge_type);

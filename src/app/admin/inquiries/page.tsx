@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ArrowUpRight, Filter, Inbox, Search } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { InquiryFilters } from "@/components/admin/InquiryFilters";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -25,7 +25,7 @@ export default async function InquiriesPage({
 }) {
   const params = await searchParams;
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p className="text-slate-500">Connect Supabase.</p>;
+  if (!supabase) return <p className="text-slate-500">The database is not connected.</p>;
 
   let query = supabase
     .from("inquiries")
@@ -40,7 +40,7 @@ export default async function InquiriesPage({
 
   const filtered = params.q
     ? (inquiries || []).filter(
-        (i: any) =>
+        (i) =>
           i.full_name?.toLowerCase().includes(params.q!.toLowerCase()) ||
           i.company_name?.toLowerCase().includes(params.q!.toLowerCase()) ||
           i.inquiry_no?.toLowerCase().includes(params.q!.toLowerCase()) ||
@@ -50,7 +50,7 @@ export default async function InquiriesPage({
 
   // Pipeline summary
   const statusCounts: Record<string, number> = {};
-  (inquiries || []).forEach((i: any) => {
+  (inquiries || []).forEach((i) => {
     statusCounts[i.status] = (statusCounts[i.status] || 0) + 1;
   });
 
@@ -102,7 +102,7 @@ export default async function InquiriesPage({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.length > 0 ? (
-                filtered.map((inq: any) => (
+                filtered.map((inq) => (
                   <tr key={inq.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-3">
                       <Link href={`/admin/inquiries/${inq.id}`} className="font-semibold text-slate-800 hover:text-[var(--accent)]">

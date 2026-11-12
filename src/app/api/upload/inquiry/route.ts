@@ -8,7 +8,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Clients attach documents to their own quote request right after submitting it.
 export async function POST(request: Request) {
   try {
-    if (isRateLimited(`upload:${clientIp(request)}`, 20, 60 * 60 * 1000)) {
+    if (await isRateLimited(`upload:${clientIp(request)}`, 20, 60 * 60 * 1000)) {
       return NextResponse.json({ error: "Too many uploads. Email the documents instead." }, { status: 429 });
     }
     const formData = await request.formData();

@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { updateDeclarationStatus, updateDeclarationDetails } from "../actions";
+import { updateDeclarationDetails } from "../actions";
 import { DeclarationStatusActions } from "@/components/admin/DeclarationStatusActions";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -15,7 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function DeclarationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = createServiceRoleClient();
-  if (!supabase) return <p>Connect Supabase.</p>;
+  if (!supabase) return <p>The database is not connected.</p>;
 
   const { data: decl } = await supabase
     .from("customs_declarations")

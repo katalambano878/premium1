@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activity";
 import { getSessionUser } from "@/lib/auth/session";
+import { canWrite } from "@/lib/auth/roles";
 import { checkUpload, fileUrl, safeFileName } from "@/lib/uploads";
 
 // Staff upload shipment documents from the dashboard.
@@ -9,6 +10,7 @@ export async function POST(request: Request) {
   try {
     const staff = await getSessionUser();
     if (!staff) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+    if (!canWrite(staff.role, "documents")) return NextResponse.json({ error: "Your role cannot upload documents" }, { status: 403 });
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

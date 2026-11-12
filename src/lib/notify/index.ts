@@ -51,7 +51,7 @@ export async function sendTemplateNotification(opts: {
       .eq("key", templateKey)
       .eq("channel", channel)
       .eq("is_active", true)
-      .single();
+      .maybeSingle();
 
     if (tpl) {
       subject = tpl.subject || "";
@@ -60,8 +60,9 @@ export async function sendTemplateNotification(opts: {
   }
 
   if (!body) {
-    subject = payload.subject || `Premium 1 Logistics - ${templateKey.replace(/_/g, " ")}`;
-    body = payload.body || `Notification: ${templateKey}`;
+    // Never send a placeholder to a client: a missing template is a setup bug.
+    console.error(`[notify] no active "${templateKey}" ${channel} template; nothing sent to ${recipient}`);
+    return { success: false, error: `Missing template ${templateKey}` };
   }
 
   const interpolate = (str: string) =>
@@ -70,7 +71,9 @@ export async function sendTemplateNotification(opts: {
   subject = interpolate(subject);
   body = interpolate(body);
 
-  const result = await sendNotification({ channel, recipient, subject, body });
+  // Replies from clients go to the team's inbox, not the no-reply sender.
+  const replyTo = process.env.EMAIL_REPLY_TO || process.env.NEXT_PUBLIC_SITE_EMAIL || "info@premium1logistics.com";
+  const result = await sendNotification({ channel, recipient, subject, body, replyTo });
 
   if (supabase) {
     try {

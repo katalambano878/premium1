@@ -11,6 +11,7 @@ export function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", message: "" });
   const [trap, setTrap] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
+  const [errorText, setErrorText] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +26,17 @@ export function ContactForm() {
       if (res.ok) {
         setStatus("ok");
         setForm({ name: "", email: "", phone: "", company: "", message: "" });
-      } else setStatus("err");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setErrorText(
+          res.status === 429
+            ? "You have sent several messages in a short time. Please wait a little, or message us on WhatsApp."
+            : data.error || "",
+        );
+        setStatus("err");
+      }
     } catch {
+      setErrorText("We could not reach our server. Check your connection and try again.");
       setStatus("err");
     }
   };
@@ -134,7 +144,7 @@ export function ContactForm() {
       </div>
       {status === "err" && (
         <p role="alert" className="text-sm text-red-600">
-          Could not send. Email us directly or use WhatsApp.
+          {errorText || "Could not send. Email us directly or use WhatsApp."}
         </p>
       )}
       <button
