@@ -106,7 +106,7 @@ export function AdminShell({
         {/* Brand */}
         <div className="p-5 pb-4">
           <Link href="/admin" className="flex items-center gap-3">
-            <Image src="/premium1-logo-tight.webp" alt="P1" width={36} height={36} className="rounded-lg" />
+            <Image src="/premium1-logo-176.webp" alt="P1" width={36} height={36} className="rounded-lg" />
             <div>
               <span className="font-bold text-base tracking-tight block leading-tight">Premium 1</span>
               <span className="text-[10px] text-white/35 uppercase tracking-[0.2em] font-semibold">

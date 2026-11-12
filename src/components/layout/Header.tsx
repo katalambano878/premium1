@@ -66,7 +66,7 @@ export function Header() {
       <div className="mx-auto flex h-20 max-w-[1480px] items-center justify-between gap-4 px-5 sm:px-8">
         <Link href="/" className="flex items-center gap-3" onClick={closeMenus}>
           <span className="relative inline-flex h-11 w-11 overflow-hidden rounded-full bg-[var(--navy)]">
-            <Image src="/premium1-logo-tight.webp" alt="" width={88} height={88} className="h-11 w-11 object-cover" priority />
+            <Image src="/premium1-logo-176.webp" alt="" width={88} height={88} className="h-11 w-11 object-cover" priority />
           </span>
           <span className="whitespace-nowrap leading-tight">
             <span className="block text-lg font-semibold tracking-[-0.01em] text-[var(--navy)]">Premium 1</span>
