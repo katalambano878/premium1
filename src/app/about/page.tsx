@@ -7,6 +7,7 @@ import { MOCK_STATS } from "@/lib/mock";
 import { Anchor, ArrowUpRight, BadgeCheck, Check, Globe2, Shield, Target, Users } from "lucide-react";
 import { TEAM_LEADERS } from "@/lib/richContent";
 import { siteConfig } from "@/lib/siteConfig";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 
 export const metadata = {
   title: "About Us | Premium 1 Logistics LTD",
@@ -170,7 +171,8 @@ export default function AboutPage() {
 
       {/* Capabilities and figures: navy panel */}
       <section className="px-3 py-6 sm:px-5">
-        <div className="mx-auto grid max-w-[1480px] gap-10 rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-2 lg:gap-16 lg:px-14">
+        <div className="relative isolate overflow-hidden mx-auto grid max-w-[1480px] gap-10 rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-2 lg:gap-16 lg:px-14">
+          <ParallaxBackdrop src="/hero/operations-desk.webp" />
           <Reveal>
             <span className={LABEL_DARK}>Capabilities</span>
             <h2 className={`${H2} mt-6 max-w-md`}>What we handle in-house</h2>
@@ -202,7 +204,7 @@ export default function AboutPage() {
 
             <dl className="mt-6 grid grid-cols-2 gap-4">
               {MOCK_STATS.map((s) => (
-                <div key={s.label} className="flex flex-col-reverse justify-end rounded-3xl border border-white/15 bg-white/5 p-5 sm:p-6">
+                <div key={s.label} className="flex flex-col-reverse justify-end rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-5 sm:p-6">
                   <dt className="mt-2 text-sm leading-6 text-white/75">{s.label}</dt>
                   <dd className="text-4xl font-medium tabular-nums tracking-[-0.02em] sm:text-5xl">
                     {s.prefix}

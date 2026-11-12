@@ -6,6 +6,7 @@ import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
 import { MOCK_TESTIMONIALS } from "@/lib/mock";
 import { CASE_STUDIES, EXTENDED_TESTIMONIALS } from "@/lib/richContent";
 import { ArrowUpRight, Check, Lock, Star } from "lucide-react";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 
 export const metadata = {
   title: "Client Success & Testimonials | Premium 1 Logistics LTD",
@@ -65,7 +66,8 @@ export default function TestimonialsPage() {
 
       {/* Featured testimonial: navy panel */}
       <section className="px-3 pb-6 pt-3 sm:px-5 sm:pt-5">
-        <div className="mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+        <div className="relative isolate overflow-hidden mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+          <ParallaxBackdrop src="/hero-slide-2.webp" />
           <Reveal>
             <figure className="grid gap-10 lg:grid-cols-[1.35fr_0.65fr] lg:items-end lg:gap-16">
               <div>
@@ -78,7 +80,7 @@ export default function TestimonialsPage() {
                 </blockquote>
               </div>
 
-              <figcaption className="flex items-center gap-4 rounded-3xl border border-white/15 bg-white/5 p-6">
+              <figcaption className="flex items-center gap-4 rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-6">
                 {featured.avatar && (
                   <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl">
                     <Image src={featured.avatar} alt={featured.client_name} fill className="object-cover" sizes="64px" />

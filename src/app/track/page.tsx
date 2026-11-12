@@ -4,6 +4,7 @@ import { SiteCTA } from "@/components/layout/SiteCTA";
 import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
 import { TrackLookup } from "@/components/track/TrackLookup";
 import { Bell, Check, Code2, FileSearch, Lock, Package, ShieldCheck, Smartphone } from "lucide-react";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 
 export const metadata = {
   title: "Track Shipments | Premium 1 Logistics LTD",
@@ -146,7 +147,8 @@ export default function TrackPage() {
 
       {/* Planned for the portal (navy panel) */}
       <section className="px-3 py-6 sm:px-5">
-        <div className="mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+        <div className="relative isolate overflow-hidden mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+          <ParallaxBackdrop src="/hero/freight-dawn.webp" />
           <span className="inline-flex rounded-full border border-white/30 px-4 py-1.5 text-[13px] text-white/85">Client portal</span>
           <h2 className="mt-6 max-w-xl text-balance text-3xl font-medium leading-[1.15] tracking-[-0.02em] sm:text-[2.5rem]">
             Security and integrations planned for the portal
@@ -158,7 +160,7 @@ export default function TrackPage() {
             {portalPlans.map((item) => {
               const Icon = item.icon;
               return (
-                <li key={item.title} className="rounded-3xl border border-white/15 bg-white/5 p-6">
+                <li key={item.title} className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-6">
                   <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white">
                     <Icon className="h-5 w-5" strokeWidth={1.6} />
                   </span>

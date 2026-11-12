@@ -5,6 +5,7 @@ import { SiteCTA } from "@/components/layout/SiteCTA";
 import { MOCK_COVERAGE } from "@/lib/mock";
 import { TRANSIT_BANDS } from "@/lib/richContent";
 import { ArrowRight, ArrowUpRight, Clock3, Globe, MapPinned, Plane, Route, ShieldCheck, Ship, Truck } from "lucide-react";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 
 export const metadata = {
   title: "Coverage & Routes | Premium 1 Logistics LTD",
@@ -157,7 +158,8 @@ export default function CoveragePage() {
 
       {/* Sample corridors: navy panel with numbered rows */}
       <section className="px-3 py-6 sm:px-5">
-        <div className="mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+        <div className="relative isolate overflow-hidden mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+          <ParallaxBackdrop src="/hero-slide-1.webp" />
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
             <div>
               <span className="inline-flex rounded-full border border-white/30 px-4 py-1.5 text-[13px] text-white/85">Sample corridors</span>

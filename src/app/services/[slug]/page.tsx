@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Script from "next/script";
-import { Check, HelpCircle, Layers, Plus, TrendingUp, Users } from "lucide-react";
+import { Check, ClipboardCheck, Clock, HelpCircle, Layers, Plus, Route, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import { CTAButton, ServiceCard, StepTimeline } from "@/components/design-system";
 import { serviceImage } from "@/components/design-system/ServiceCard";
 import { PageHero } from "@/components/page/PageHero";
@@ -10,6 +10,7 @@ import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
 import { MOCK_SERVICES } from "@/lib/mock";
 import { SERVICE_DEEP, DEFAULT_SERVICE_DEEP } from "@/lib/pageContent";
 import { SERVICE_CASE_SNIPPETS } from "@/lib/richContent";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 
 /** Second photo per service for the overview card, so it does not repeat the hero image. */
 const OVERVIEW_IMAGES: Record<string, string> = {
@@ -31,6 +32,11 @@ const ICON_TILE = "inline-flex h-12 w-12 shrink-0 items-center justify-center ro
 const SECTION = "mx-auto max-w-[1320px] px-6 py-12 sm:py-16";
 
 const two = (n: number) => String(n).padStart(2, "0");
+
+const SCOPE_ICONS = [Route, ClipboardCheck, ShieldCheck, Clock, Layers, Users];
+
+/** Photos for the scope card, picked so it differs from the hero and overview photos. */
+const SCOPE_POOL = ["/hero/freight-dawn.webp", "/hero/ship-agency.webp", "/hero/operations-desk.webp", "/hero/customs-gate.webp", "/hero-slide-1.webp", "/hero-slide-2.webp"];
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -58,6 +64,9 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
   const heroImage = serviceImage(service.slug, service.image);
   const overviewImage = OVERVIEW_IMAGES[service.slug] ?? heroImage;
+  const scopeImage = SCOPE_POOL.find((src) => src !== heroImage && src !== overviewImage) ?? overviewImage;
+  const workflowImage =
+    SCOPE_POOL.find((src) => src !== heroImage && src !== overviewImage && src !== scopeImage) ?? scopeImage;
 
   const caseSnip = SERVICE_CASE_SNIPPETS[slug];
   const faqJsonLd =
@@ -176,54 +185,75 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      {/* ── Offerings (optional): heading column beside white cards ── */}
+      {/* ── Offerings (optional): sticky photo card beside numbered icon cards ── */}
       {deep.offerings && deep.offerings.length > 0 && (
-        <section className={`${SECTION} grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16`}>
-          <AnimateOnScroll animation="fade-up">
+        <section className={`${SECTION} grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14`}>
+          <AnimateOnScroll animation="fade-up" className="lg:sticky lg:top-28 lg:self-start">
             <span className={LABEL}>Service scope</span>
             <h2 className={`mt-6 ${H2}`}>What this service covers</h2>
+            <div className="relative isolate mt-8 flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-3xl bg-[var(--navy)] p-4 text-white sm:p-5 lg:aspect-[4/5]">
+              <Image src={scopeImage} alt="" fill sizes="(max-width: 1024px) 100vw, 36vw" className="-z-10 object-cover" />
+              <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(8,20,40,0.15)_0%,rgba(8,20,40,0.05)_40%,rgba(8,20,40,0.85)_100%)]" aria-hidden />
+              <div className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-4 backdrop-blur-xl sm:p-5">
+                <span className="text-4xl font-medium tabular-nums tracking-[-0.03em] text-[var(--accent)]">{two(deep.offerings.length)}</span>
+                <span className="text-base font-medium leading-snug">parts to this service, handled by one team</span>
+              </div>
+            </div>
           </AnimateOnScroll>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {deep.offerings.map((o, i) => (
-              <AnimateOnScroll key={o.title} animation="fade-up" delay={i * 50}>
-                <div className={`h-full ${CARD}`}>
-                  <h3 className="text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">{o.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-500">{o.description}</p>
-                </div>
-              </AnimateOnScroll>
-            ))}
+          <div className="grid content-start gap-4 sm:grid-cols-2">
+            {deep.offerings.map((o, i) => {
+              const Icon = SCOPE_ICONS[i % SCOPE_ICONS.length];
+              return (
+                <AnimateOnScroll key={o.title} animation="fade-up" delay={i * 50}>
+                  <div className="group h-full rounded-3xl border border-slate-200 bg-white p-6 transition-[transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_24px_48px_-32px_rgba(11,31,58,0.35)] sm:p-8">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--navy)] text-white transition-colors duration-300 group-hover:bg-[var(--accent)] group-hover:text-[var(--navy)]">
+                        <Icon className="h-5 w-5" strokeWidth={1.6} />
+                      </span>
+                      <span className="text-lg tabular-nums text-slate-300" aria-hidden>
+                        {two(i + 1)}
+                      </span>
+                    </div>
+                    <h3 className="mt-8 text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">{o.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-500">{o.description}</p>
+                  </div>
+                </AnimateOnScroll>
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* ── Highlights: one white card of numbered rows ── */}
-      <section className={SECTION}>
-        <AnimateOnScroll animation="fade-up" className="grid gap-6 lg:grid-cols-2 lg:items-end lg:gap-16">
-          <div>
-            <span className={LABEL}>Capabilities</span>
+      {/* ── Highlights: light teal panel with a tick card per deliverable ── */}
+      <section className="px-3 py-6 sm:px-5">
+        <div className="mx-auto grid max-w-[1480px] gap-10 rounded-[1.75rem] border border-[#c4ebe6] bg-[#e4f6f3] px-5 py-10 sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-16 lg:px-14">
+          <AnimateOnScroll animation="fade-up">
+            <span className="inline-flex rounded-full border border-[var(--accent-ink)]/30 bg-white/60 px-4 py-1.5 text-[13px] text-[var(--accent-ink)]">Capabilities</span>
             <h2 className={`mt-6 ${H2}`}>What you can expect</h2>
-          </div>
-          <p className="max-w-md text-base leading-7 text-slate-600 sm:text-lg lg:justify-self-end">
-            Concrete deliverables on every shipment—not generic promises.
-          </p>
-        </AnimateOnScroll>
+            <p className="mt-4 max-w-md text-base leading-7 text-slate-600 sm:text-lg">
+              Concrete deliverables on every shipment, not generic promises.
+            </p>
+            <CTAButton href="/quote" variant="secondary" size="md" className="mt-8">
+              Get a quote
+            </CTAButton>
+          </AnimateOnScroll>
 
-        <AnimateOnScroll animation="fade-up" delay={80} className="mt-10">
-          <div className="rounded-3xl border border-slate-200 bg-white px-6 sm:px-8">
-            <div className="overflow-hidden">
-              <ol className="-mt-px grid sm:grid-cols-2 sm:gap-x-12">
-                {deep.highlights.map((h, i) => (
-                  <li key={h} className="flex gap-4 border-t border-slate-200 py-5 sm:py-6">
-                    <span className="text-lg tabular-nums text-slate-400" aria-hidden>
-                      {two(i + 1)}
-                    </span>
-                    <p className="text-base leading-7 text-[var(--navy)]">{h}</p>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        </AnimateOnScroll>
+          <ol className="grid gap-3 sm:grid-cols-2">
+            {deep.highlights.map((h, i) => (
+              <AnimateOnScroll key={h} animation="fade-up" delay={i * 60}>
+                <li className="flex h-full items-start gap-4 rounded-2xl bg-white p-5 shadow-[0_16px_32px_-28px_rgba(11,31,58,0.45)] sm:p-6">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--navy)]">
+                    <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+                  </span>
+                  <span>
+                    <span className="block text-[13px] tabular-nums text-slate-400">{two(i + 1)}</span>
+                    <span className="mt-0.5 block text-base font-medium leading-6 text-[var(--navy)]">{h}</span>
+                  </span>
+                </li>
+              </AnimateOnScroll>
+            ))}
+          </ol>
+        </div>
       </section>
 
       {/* ── Commercial impact: three cards ── */}
@@ -252,7 +282,8 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
       {/* ── Workflow + differentiators: navy panel ── */}
       <section className="px-3 py-6 sm:px-5">
-        <div className="mx-auto grid max-w-[1480px] gap-10 rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-16 lg:px-14">
+        <div className="relative isolate overflow-hidden mx-auto grid max-w-[1480px] gap-10 rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-16 lg:px-14">
+          <ParallaxBackdrop src={workflowImage} />
           <div>
             <AnimateOnScroll animation="fade-up">
               <span className={LABEL_DARK}>The process</span>
@@ -270,7 +301,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
           <div className="lg:sticky lg:top-28">
             <AnimateOnScroll animation="fade-up" delay={150}>
-              <div className="rounded-3xl border border-white/15 bg-white/5 p-6 sm:p-8">
+              <div className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-6 sm:p-8">
                 <div className="flex items-center gap-4">
                   <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
                     <Layers className="h-5 w-5" strokeWidth={1.6} />

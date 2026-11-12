@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowUpRight, Check, Layers, X } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Check, Layers, Receipt, Repeat, X } from "lucide-react";
 import { CTAButton, ServiceCard, StepTimeline } from "@/components/design-system";
 import { serviceImage } from "@/components/design-system/ServiceCard";
 import { PageHero } from "@/components/page/PageHero";
 import { SiteCTA } from "@/components/layout/SiteCTA";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 import { MOCK_SERVICES } from "@/lib/mock";
 
 export const metadata = {
@@ -53,6 +54,34 @@ const comparison: { aspect: string; typical: string; premium: string }[] = [
 ];
 
 const pricingTags = ["Transparent structure", "No hidden add-ons", "Lane-specific validity"];
+
+const pricingPoints = [
+  {
+    icon: Receipt,
+    title: "What you pay for",
+    body: "Service fee plus pass-through charges (THC, duties, storage, line surcharges), itemized line by line.",
+  },
+  {
+    icon: CalendarClock,
+    title: "How quotes are built",
+    body: "Quotations are lane-specific and time-bound with assumptions called out, so there is no stale pricing ambiguity.",
+  },
+  {
+    icon: Repeat,
+    title: "For repeat customers",
+    tag: "Volume-friendly",
+    body: "Recurring volumes can move to predictable retainer-style pricing. Share a previous invoice and we will benchmark, flag savings opportunities, and show where service-level improvements drive value.",
+  },
+];
+
+/** Illustrative quote lines (no prices): the pass-through charges listed in the copy above. */
+const quoteLines = [
+  { label: "Ocean freight", note: "Carrier rate for the lane" },
+  { label: "Terminal handling (THC)", note: "Origin and destination port charges" },
+  { label: "Duties and taxes", note: "Paid to GRA Customs" },
+  { label: "Storage", note: "Only if the cargo is held" },
+  { label: "Line surcharges", note: "Fuel and seasonal charges" },
+];
 
 /** Glass tags on the two featured photo cards; taken from each service's own description. */
 const FEATURED_TAGS: Record<string, string[]> = {
@@ -119,16 +148,17 @@ export default function ServicesPage() {
 
       {/* Why teams choose us: navy panel, numbered rows beside one card */}
       <section className="px-3 py-6 sm:px-5">
-        <div className="mx-auto grid max-w-[1480px] gap-10 rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16 lg:px-14">
+        <div className="relative isolate mx-auto grid max-w-[1480px] gap-10 overflow-hidden rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16 lg:px-14 lg:py-20">
+          <ParallaxBackdrop src="/hero/freight-dawn.webp" position="center 60%" />
           <div>
-            <span className="inline-flex rounded-full border border-white/30 px-4 py-1.5 text-[13px] text-white/85">Why teams choose us</span>
+            <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-[13px] text-white/90 backdrop-blur-md">Why teams choose us</span>
             <h2 className="mt-6 max-w-lg text-balance text-3xl font-medium leading-[1.15] tracking-[-0.02em] sm:text-[2.5rem]">
               Execution you can explain to your CFO
             </h2>
             <StepTimeline steps={reasons} variant="dark" className="mt-8" />
           </div>
 
-          <div className="self-start rounded-3xl border border-white/15 bg-white/5 p-6 sm:p-8 lg:sticky lg:top-28">
+          <div className="self-start rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-xl sm:p-8 lg:sticky lg:top-28">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white">
               <Layers className="h-5 w-5" strokeWidth={1.6} />
             </span>
@@ -220,8 +250,8 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* How we price: heading and tags on the left, three cards on the right */}
-      <section className="mx-auto grid max-w-[1320px] gap-10 px-6 py-12 sm:py-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+      {/* How we price: explanations beside an illustrated quote showing how costs are itemised */}
+      <section className="mx-auto grid max-w-[1320px] gap-12 px-6 py-12 sm:py-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-20">
         <div>
           <span className={LABEL}>Pricing clarity</span>
           <h2 className={`mt-6 ${H2}`}>How we price</h2>
@@ -235,31 +265,67 @@ export default function ServicesPage() {
               </li>
             ))}
           </ul>
+
+          <ul className="mt-10 space-y-6 border-t border-slate-200 pt-8">
+            {pricingPoints.map((point) => {
+              const Icon = point.icon;
+              return (
+                <li key={point.title} className="flex gap-4">
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--navy)] text-white">
+                    <Icon className="h-5 w-5" strokeWidth={1.6} />
+                  </span>
+                  <span>
+                    <span className="flex flex-wrap items-center gap-2 text-lg font-medium text-[var(--navy)]">
+                      {point.title}
+                      {point.tag ? (
+                        <span className="rounded-full bg-[#e4f6f3] px-2.5 py-0.5 text-[12px] font-medium text-[var(--accent-ink)]">{point.tag}</span>
+                      ) : null}
+                    </span>
+                    <span className="mt-1 block text-sm leading-6 text-slate-500">{point.body}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
-            <h3 className="text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">What you pay for</h3>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Service fee plus pass-through charges (THC, duties, storage, line surcharges), itemized line by line.
-            </p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
-            <h3 className="text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">How quotes are built</h3>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Quotations are lane-specific and time-bound with assumptions called out, so there is no stale pricing ambiguity.
-            </p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:col-span-2 sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">For repeat customers</h3>
-              <span className="rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] text-slate-600">Volume-friendly</span>
+        <div className="relative mx-auto w-full max-w-xl lg:mx-0">
+          <div aria-hidden className="absolute inset-0 translate-x-3 translate-y-3 rotate-[2.5deg] rounded-3xl bg-[var(--navy)] sm:translate-x-5 sm:translate-y-5" />
+          <figure className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_32px_64px_-40px_rgba(11,31,58,0.45)] sm:p-8">
+            <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-300 pb-5">
+              <div>
+                <p className="text-[13px] text-slate-500">Example quote structure</p>
+                <p className="mt-1 text-xl font-medium tracking-[-0.01em] text-[var(--navy)]">Shanghai to Tema, 1 × 40ft</p>
+              </div>
+              <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[12px] font-medium text-[var(--navy)]">Itemised</span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Recurring volumes can move to predictable retainer-style pricing. Share a previous invoice and we will benchmark,
-              flag savings opportunities, and show where service-level improvements drive value.
-            </p>
-          </div>
+            <ul className="divide-y divide-slate-100">
+              {quoteLines.map((line) => (
+                <li key={line.label} className="flex items-center justify-between gap-4 py-3.5">
+                  <span>
+                    <span className="block text-[15px] font-medium text-[var(--navy)]">{line.label}</span>
+                    <span className="block text-[13px] text-slate-500">{line.note}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-[12px] text-slate-500">At cost</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 flex items-center justify-between gap-4 rounded-2xl bg-[var(--navy)] px-4 py-4 text-white sm:px-5">
+              <span>
+                <span className="block text-[15px] font-medium">Premium 1 service fee</span>
+                <span className="block text-[13px] text-white/70">Our only margin, shown on its own line</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-[var(--accent)] px-2.5 py-1 text-[12px] font-medium text-[var(--navy)]">Our fee</span>
+            </div>
+            <figcaption className="mt-5 grid gap-2 border-t border-dashed border-slate-300 pt-5 text-[13px] text-slate-500 sm:grid-cols-2">
+              <span className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-[var(--accent-ink)]" strokeWidth={2.5} aria-hidden /> Assumptions written on the quote
+              </span>
+              <span className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-[var(--accent-ink)]" strokeWidth={2.5} aria-hidden /> Validity dates for each lane
+              </span>
+            </figcaption>
+          </figure>
         </div>
       </section>
 

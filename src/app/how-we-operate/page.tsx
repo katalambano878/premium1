@@ -1,6 +1,7 @@
 import { PageHero } from "@/components/page/PageHero";
 import { SiteCTA } from "@/components/layout/SiteCTA";
 import { AnimateOnScroll } from "@/components/ui/AnimateOnScroll";
+import { ParallaxBackdrop } from "@/components/home-v3/ParallaxBackdrop";
 import {
   ClipboardCheck,
   Clock,
@@ -187,7 +188,8 @@ export default function HowWeOperatePage() {
 
       {/* Systems: navy panel with three cards */}
       <section className="px-3 py-6 sm:px-5">
-        <div className="mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+        <div className="relative isolate overflow-hidden mx-auto max-w-[1480px] rounded-[1.75rem] bg-[var(--navy)] px-5 py-10 text-white sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14">
+          <ParallaxBackdrop src="/hero/customs-gate.webp" />
           <Reveal>
             <span className={LABEL_DARK}>Systems</span>
             <h2 className={`${H2} mt-6 max-w-lg`}>What runs behind the scenes</h2>
@@ -197,7 +199,7 @@ export default function HowWeOperatePage() {
             {systems.map((sys, i) => (
               <li key={sys.title}>
                 <Reveal delay={i * 80} className="h-full">
-                  <div className="flex h-full flex-col rounded-3xl border border-white/15 bg-white/5 p-6 sm:p-8">
+                  <div className="flex h-full flex-col rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-6 sm:p-8">
                     <p className="text-4xl font-medium tracking-[-0.02em] sm:text-5xl">{sys.stat}</p>
                     <p className="mt-2 text-sm text-white/75">{sys.statLabel}</p>
                     <h3 className="mt-8 border-t border-white/15 pt-6 text-xl font-medium tracking-[-0.01em]">{sys.title}</h3>
