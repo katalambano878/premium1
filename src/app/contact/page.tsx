@@ -64,16 +64,6 @@ const hours = [
   { day: "Sunday", time: "Closed" },
 ];
 
-const firstMessage = [
-  "Origin and destination (city / port / ICD)",
-  "Commodity type, approximate weight and volume",
-  "Target delivery window and Incoterms if known",
-  "Any permits, L/C, or inspection requirements",
-];
-
-const pill = "inline-flex self-start rounded-full border border-slate-300 px-4 py-1.5 text-[13px] text-slate-600";
-const h2 = "text-balance text-3xl font-medium leading-[1.15] tracking-[-0.02em] text-[var(--navy)] sm:text-[2.5rem]";
-
 export default function ContactPage() {
   return (
     <>
@@ -155,27 +145,6 @@ export default function ContactPage() {
             </div>
           </AnimateOnScroll>
         </div>
-      </section>
-
-      {/* What to include */}
-      <section className="mx-auto grid max-w-[1320px] gap-10 px-6 py-12 sm:py-16 lg:grid-cols-2 lg:gap-16">
-        <AnimateOnScroll animation="fade-up" className="flex flex-col">
-          <span className={pill}>Before you write</span>
-          <h2 className={`mt-6 max-w-md ${h2}`}>What to include in your first message</h2>
-          <p className="mt-4 max-w-md text-base leading-7 text-slate-600 sm:text-lg">
-            Help us give you an accurate answer on the first reply. Whether emailing or messaging us, these details speed things up.
-          </p>
-        </AnimateOnScroll>
-        <AnimateOnScroll animation="fade-up" delay={80}>
-          <ol className="border-b border-slate-200">
-            {firstMessage.map((item, i) => (
-              <li key={item} className="grid grid-cols-[2.5rem_1fr] items-baseline gap-4 border-t border-slate-200 py-5 sm:grid-cols-[3.5rem_1fr]">
-                <span className="text-lg tabular-nums text-slate-400">0{i + 1}</span>
-                <span className="text-lg font-medium text-[var(--navy)] sm:text-xl">{item}</span>
-              </li>
-            ))}
-          </ol>
-        </AnimateOnScroll>
       </section>
 
       {/* Office + map */}
