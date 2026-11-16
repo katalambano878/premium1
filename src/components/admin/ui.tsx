@@ -92,6 +92,48 @@ export function PageHeader({
   );
 }
 
+/** Navy greeting band used on the desk pages that need more presence than a plain title. */
+export function DeskBanner({
+  eyebrow,
+  title,
+  accent,
+  description,
+  actions,
+  back,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  accent?: React.ReactNode;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+  back?: { href: string; label: string };
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[1.75rem] bg-[var(--navy)] px-6 py-7 text-white shadow-[0_28px_60px_-36px_rgba(11,31,58,0.85)] sm:px-8 sm:py-8">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[var(--accent)]/25 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-64 rounded-full bg-[var(--accent)]/10 blur-2xl" />
+      <div className="relative">
+        {back ? (
+          <Link href={back.href} className="mb-4 inline-flex min-h-9 items-center gap-1.5 text-sm text-white/70 transition-colors hover:text-white">
+            <ArrowLeft size={16} /> {back.label}
+          </Link>
+        ) : null}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">{eyebrow}</p> : null}
+            <h1 className="mt-3 font-editorial text-4xl leading-none tracking-tight sm:text-5xl">
+              {title}
+              {accent ? <span className="italic text-[#b8f3ec]"> {accent}</span> : null}
+            </h1>
+            {description ? <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">{description}</p> : null}
+          </div>
+          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Cards                                                               */
 /* ------------------------------------------------------------------ */
@@ -391,9 +433,9 @@ export function StatCard({
 /* ------------------------------------------------------------------ */
 
 /** White card that holds a table and scrolls sideways on small screens. */
-export function TableCard({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
+export function TableCard({ children, footer, className }: { children: React.ReactNode; footer?: React.ReactNode; className?: string }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className={cx("overflow-hidden rounded-2xl border border-slate-200 bg-white", className)}>
       <div className="overflow-x-auto">{children}</div>
       {footer ? <div className="border-t border-slate-200 px-5 py-3 text-sm text-slate-500">{footer}</div> : null}
     </div>

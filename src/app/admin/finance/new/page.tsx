@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { Plus, Users } from "lucide-react";
+import { Plus } from "lucide-react";
 import { InvoiceForm } from "@/components/admin/InvoiceForm";
 import { isUuid } from "@/components/admin/finance/format";
-import { ButtonLink, Callout, PageHeader } from "@/components/admin/ui";
+import { ButtonLink, Callout, DeskBanner } from "@/components/admin/ui";
 import { query } from "@/lib/db/pool";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createInvoice } from "../actions";
@@ -31,27 +31,34 @@ export default async function NewInvoicePage({ searchParams }: { searchParams: P
   const clientId = shipment?.client_id || (clients.some((c) => c.id === params.client) ? params.client : undefined);
 
   return (
-    <div className="max-w-4xl">
-      <PageHeader
+    <div className="space-y-6">
+      <DeskBanner
+        eyebrow="Finance"
         title="New invoice"
+        accent="draft"
         description="The invoice is saved as a draft. Mark it as sent once the client has it."
         back={{ href: "/admin/finance", label: "Finance" }}
       />
       {clients.length ? (
         <InvoiceForm action={handleCreate} clients={clients} shipments={shipments} defaultClientId={clientId} defaultShipmentId={shipment?.id} />
       ) : (
-        <Callout
-          tone="warning"
-          icon={Users}
-          title="Add a client first"
-          action={
-            <ButtonLink href="/admin/clients/new">
+        <section className="relative overflow-hidden rounded-[1.75rem] bg-white p-6 shadow-[0_18px_40px_-30px_rgba(11,31,58,0.5)] ring-1 ring-[var(--navy)]/8 sm:p-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Before a bill</p>
+          <div className="mt-3 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-xl">
+              <h2 className="font-editorial text-4xl leading-none text-[var(--navy)]">
+                Add a client <span className="italic text-[var(--accent-hover)]">first</span>
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-500">Every invoice is billed to a client, and there are none yet. Once a company is on file, this page becomes the draft form.</p>
+            </div>
+            <ButtonLink href="/admin/clients/new" className="self-start !rounded-full sm:self-auto">
               <Plus size={16} aria-hidden /> New client
             </ButtonLink>
-          }
-        >
-          Every invoice is billed to a client, and there are none yet.
-        </Callout>
+          </div>
+          <p className="pointer-events-none mt-8 font-editorial text-7xl leading-none text-[var(--accent)]/40" aria-hidden>
+            01
+          </p>
+        </section>
       )}
     </div>
   );

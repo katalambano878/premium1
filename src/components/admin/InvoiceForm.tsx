@@ -32,8 +32,8 @@ const lineAmount = (item: LineItem) => round2((Number(item.quantity) || 0) * (Nu
 function SectionTitle({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-4">
-      <h2 className="text-base font-medium text-[var(--navy)]">{title}</h2>
-      {description ? <p className="mt-0.5 text-sm leading-6 text-slate-500">{description}</p> : null}
+      <h2 className="font-editorial text-3xl text-[var(--navy)]">{title}</h2>
+      {description ? <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p> : null}
     </div>
   );
 }
@@ -91,7 +91,9 @@ export function InvoiceForm({
   return (
     <ActionForm action={action} error="The invoice could not be created. Check the details and try again.">
       <input type="hidden" name="item_count" value={items.length} />
-      <Card>
+      <Card padded={false} className="overflow-hidden shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
+        <div className="h-1 bg-[var(--accent)]" />
+        <div className="p-5 sm:p-6">
         <section>
           <SectionTitle title="Invoice details" />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -299,7 +301,7 @@ export function InvoiceForm({
             </div>
             <div className="flex items-baseline justify-between gap-4 border-t border-slate-200 pt-3">
               <dt className="font-medium text-[var(--navy)]">Total</dt>
-              <dd className="text-xl font-medium tabular-nums tracking-[-0.01em] text-[var(--navy)]">{formatMoney(total, currency)}</dd>
+              <dd className="font-editorial text-3xl tabular-nums leading-none text-[var(--navy)]">{formatMoney(total, currency)}</dd>
             </div>
           </dl>
         </section>
@@ -321,6 +323,7 @@ export function InvoiceForm({
             {problem || `Ready to create a draft for ${formatMoney(total, currency)}.`}
           </p>
         </FormActions>
+        </div>
       </Card>
     </ActionForm>
   );

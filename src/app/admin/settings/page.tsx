@@ -2,7 +2,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Globe, KeyRound, Mail } from "lucide-react";
 import { getSessionUser, requireRole } from "@/lib/auth/session";
-import { Callout, Card, CardHeader, DetailList, Field, FormActions, Input, PageHeader } from "@/components/admin/ui";
+import { Callout, Card, DeskBanner, DetailList, Field, FormActions, Input, initials } from "@/components/admin/ui";
 import { ActionButton, ActionForm, SubmitButton } from "@/components/admin/ui-client";
 import { ROLE_INFO } from "@/lib/auth/roles";
 import { siteConfig } from "@/lib/siteConfig";
@@ -51,14 +51,23 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Company details, where alerts go, and your own account." />
+      <DeskBanner
+        eyebrow="House record · Accra"
+        title="Settings"
+        accent="for the company"
+        description="The name, address and inboxes staff and clients rely on."
+      />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader title="Company details" description="The official record of the business, shown to staff in the dashboard." />
+          <Card padded={false} className="overflow-hidden shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
+            <div className="h-1 bg-[var(--accent)]" />
+            <div className="p-5 sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Official record</p>
+              <h2 className="mt-1 font-editorial text-3xl text-[var(--navy)]">Company details</h2>
+              <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">Shown to staff inside the dashboard. This is the house name on invoices and internal files.</p>
             {settings ? (
-              <ActionForm action={updateSettings} success="Company details saved" hidden={{ id: settings.id }}>
+              <ActionForm action={updateSettings} success="Company details saved" hidden={{ id: settings.id }} className="mt-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Company name" htmlFor="set-company" required>
                     <Input id="set-company" name="company_name" required maxLength={200} defaultValue={settings.company_name || ""} />
@@ -88,26 +97,28 @@ export default async function SettingsPage() {
                 It is created automatically the next time the site is deployed.
               </Callout>
             )}
+            </div>
           </Card>
 
-          <Card>
-            <CardHeader
-              title="Contact details on the public website"
-              description="What visitors see on premium1logistics.com today. These are set when the site is deployed, so changing them needs your developer."
-            />
-            <DetailList
-              items={[
-                { label: "Phone", value: siteConfig.phone },
-                { label: "WhatsApp", value: `+${siteConfig.whatsappE164}` },
-                { label: "Email", value: siteConfig.email },
-                { label: "Address", value: siteConfig.addressLine },
-              ]}
-            />
+          <Card className="bg-[linear-gradient(180deg,#ffffff_0%,#f4f8f8_100%)] shadow-[0_18px_40px_-32px_rgba(11,31,58,0.35)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Public site</p>
+            <h2 className="mt-1 font-editorial text-3xl text-[var(--navy)]">What visitors see</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">These lines are set when the site is deployed. Changing them needs your developer.</p>
+            <div className="mt-5">
+              <DetailList
+                items={[
+                  { label: "Phone", value: siteConfig.phone },
+                  { label: "WhatsApp", value: `+${siteConfig.whatsappE164}` },
+                  { label: "Email", value: siteConfig.email },
+                  { label: "Address", value: siteConfig.addressLine },
+                ]}
+              />
+            </div>
             <a
               href="/contact"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-flex min-h-9 items-center gap-2 text-sm font-medium text-[var(--accent-ink)] hover:text-[var(--navy)]"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--navy)] px-5 text-sm font-semibold text-white hover:bg-[#16335c]"
             >
               <Globe size={15} /> Open the contact page
             </a>
@@ -115,16 +126,20 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-6">
-          <Card as="aside">
-            <CardHeader title="Your account" />
-            <DetailList
-              columns={1}
-              items={[
-                { label: "Name", value: me?.fullName },
-                { label: "Sign-in email", value: me?.email },
-                { label: "Role", value: me ? ROLE_INFO[me.role]?.label : null },
-              ]}
-            />
+          <Card as="aside" className="shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Signed in</p>
+            <div className="mt-4 flex items-center gap-4">
+              <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--navy)] font-editorial text-xl text-[#b8f3ec]">
+                {initials(me?.fullName || me?.email)}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-editorial text-2xl leading-none text-[var(--navy)]">{me?.fullName || "Your account"}</p>
+                <p className="mt-1 truncate text-sm text-slate-500">{me?.email}</p>
+              </div>
+            </div>
+            {me ? (
+              <p className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-ink)]">{ROLE_INFO[me.role]?.label}</p>
+            ) : null}
             {me ? (
               <div className="mt-5 border-t border-slate-200 pt-5">
                 <ActionButton
@@ -141,24 +156,34 @@ export default async function SettingsPage() {
             ) : null}
           </Card>
 
-          <Card as="aside">
-            <CardHeader title="Email alerts" description="Where the website sends new quote requests and contact messages." />
+          <Card as="aside" padded={false} className="overflow-hidden shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
+            <div className="h-1 bg-[var(--accent)]" />
+            <div className="p-5 sm:p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Inbox</p>
+            <h2 className="mt-1 font-editorial text-3xl text-[var(--navy)]">Email alerts</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">Where the website sends new quote requests and contact messages.</p>
             {alerts.length ? (
-              <ul className="space-y-2">
+              <ul className="mt-5 space-y-2">
                 {alerts.map((a) => (
-                  <li key={a} className="flex items-center gap-2.5 text-sm font-medium text-[var(--navy)]">
-                    <Mail size={15} className="shrink-0 text-slate-400" /> <span className="break-all">{a}</span>
+                  <li key={a} className="flex items-center gap-3 rounded-2xl bg-[#f4f8f8] px-3 py-2.5 text-sm font-medium text-[var(--navy)]">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--accent-ink)] shadow-sm">
+                      <Mail size={15} />
+                    </span>
+                    <span className="break-all">{a}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <Callout tone="danger" title="No alert address is set">
-                New quote requests are saved here but nobody is emailed. Ask your developer to set one.
-              </Callout>
+              <div className="mt-5">
+                <Callout tone="danger" title="No alert address is set">
+                  New quote requests are saved here but nobody is emailed. Ask your developer to set one.
+                </Callout>
+              </div>
             )}
             <p className="mt-4 text-[13px] leading-5 text-slate-500">
               Clients get an automatic email when their quote is ready and when a shipment is in transit, arrives or is delivered. Their replies go to {siteConfig.email}.
             </p>
+            </div>
           </Card>
         </div>
       </div>

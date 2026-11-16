@@ -1,5 +1,5 @@
 import { Mail, ShieldCheck, UserPlus, Users } from "lucide-react";
-import { Callout, Card, CardHeader, EmptyState, Field, Input, PageHeader, Select, StatusBadge, TableCard, cx, formatDateTime, initials, tableClass, tdClass, thClass, timeAgo, trClass } from "@/components/admin/ui";
+import { Card, DeskBanner, EmptyState, Field, Input, Select, StatusBadge, TableCard, cx, formatDateTime, initials, tableClass, tdClass, thClass, timeAgo, trClass } from "@/components/admin/ui";
 import { ActionButton, ActionForm, AutoSelect, SubmitButton } from "@/components/admin/ui-client";
 import { ROLE_INFO, type StaffRole } from "@/lib/auth/roles";
 import { getSessionUser } from "@/lib/auth/session";
@@ -34,21 +34,27 @@ export default async function StaffPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <DeskBanner
+        eyebrow="The desk"
         title="Staff"
-        description={`${active.length} active ${active.length === 1 ? "person" : "people"}. Each person signs in with their own email and only sees what their role allows.`}
+        accent={active.length === 1 ? "1 person" : `${active.length} people`}
+        description="Each person signs in with their own email and only sees what their role allows."
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader title="Add a staff member" description="They get an email with a link to choose their own password. You never see or set it." />
+          <Card padded={false} className="overflow-hidden shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
+            <div className="h-1 bg-[var(--accent)]" />
+            <div className="p-5 sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Invite</p>
+              <h2 className="mt-1 font-editorial text-3xl text-[var(--navy)]">Add a staff member</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500">They get an email with a link to choose their own password. You never see or set it.</p>
             <ActionForm
               action={createStaff}
               success="Staff member added and invite sent"
               error="Could not finish adding this person. If they appear in the list, use “Send password link”; otherwise check the email address."
               resetOnSuccess
-              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_13rem_auto] lg:items-end"
+              className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_13rem_auto] lg:items-end"
             >
               <Field label="Full name" htmlFor="staff-name" required>
                 <Input id="staff-name" name="full_name" required maxLength={160} autoComplete="off" placeholder="e.g. Ama Mensah" />
@@ -68,11 +74,12 @@ export default async function StaffPage() {
               <SubmitButton pendingLabel="Adding…">
                 <UserPlus size={16} /> Add and invite
               </SubmitButton>
-            </ActionForm>
+              </ActionForm>
+            </div>
           </Card>
 
           {staff.length ? (
-            <TableCard>
+            <TableCard className="shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
               <table className={tableClass}>
                 <thead>
                   <tr>
@@ -91,13 +98,13 @@ export default async function StaffPage() {
                       <tr key={s.id} className={cx(trClass, !s.is_active && "opacity-70")}>
                         <td className={tdClass}>
                           <div className="flex items-center gap-3">
-                            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[13px] font-medium text-slate-600">
+                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--navy)] text-[13px] font-medium text-[#b8f3ec]">
                               {initials(s.full_name)}
                             </span>
                             <div className="min-w-0">
                               <p className="truncate font-medium text-[var(--navy)]">
                                 {s.full_name}
-                                {isMe ? <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-600">You</span> : null}
+                                {isMe ? <span className="ml-2 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs font-medium text-[var(--accent-ink)]">You</span> : null}
                               </p>
                               <p className="truncate text-[13px] text-slate-500">{s.email}</p>
                             </div>
@@ -162,20 +169,29 @@ export default async function StaffPage() {
         </div>
 
         <div className="space-y-6">
-          <Card as="aside">
-            <CardHeader title="What each role can do" />
-            <dl className="space-y-4">
-              {(Object.keys(ROLE_INFO) as StaffRole[]).map((r) => (
-                <div key={r}>
-                  <dt className="text-sm font-medium text-[var(--navy)]">{ROLE_INFO[r].label}</dt>
-                  <dd className="mt-0.5 text-[13px] leading-5 text-slate-500">{ROLE_INFO[r].summary}</dd>
-                </div>
-              ))}
-            </dl>
+          <Card as="aside" padded={false} className="overflow-hidden shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
+            <div className="h-1 bg-[var(--accent)]" />
+            <div className="p-5 sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Access</p>
+              <h2 className="mt-1 font-editorial text-3xl text-[var(--navy)]">What each role can do</h2>
+              <ol className="mt-5 space-y-3">
+                {(Object.keys(ROLE_INFO) as StaffRole[]).map((r, i) => (
+                  <li key={r} className="rounded-2xl bg-[#f4f8f8] px-4 py-3">
+                    <p className="font-editorial text-sm italic text-[var(--accent-hover)]">{String(i + 1).padStart(2, "0")}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--navy)]">{ROLE_INFO[r].label}</p>
+                    <p className="mt-0.5 text-[13px] leading-5 text-slate-500">{ROLE_INFO[r].summary}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </Card>
-          <Callout icon={ShieldCheck} title="How access is protected">
-            Deactivating someone signs them out at once and cancels any password links they hold. Role changes apply to their next action. There is always at least one admin.
-          </Callout>
+          <aside className="rounded-[1.5rem] bg-[var(--navy)] p-5 text-white shadow-[0_18px_40px_-32px_rgba(11,31,58,0.55)]">
+            <ShieldCheck size={18} className="text-[var(--accent)]" />
+            <h2 className="mt-3 font-editorial text-2xl">How access is protected</h2>
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              Deactivating someone signs them out at once and cancels any password links they hold. Role changes apply to their next action. There is always at least one admin.
+            </p>
+          </aside>
         </div>
       </div>
     </div>
