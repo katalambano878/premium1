@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardCheck, FileText, Inbox, Truck, Users } from "lucide-react";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
-import { ButtonLink, Callout, Card, CardHeader, CardLink, EmptyState, PageHeader, StatCard, StatusBadge, cx, formatDate, initials, statusLabel, timeAgo } from "@/components/admin/ui";
+import { ButtonLink, Callout, Card, CardHeader, CardLink, EmptyState, StatusBadge, cx, formatDate, initials, statusLabel, timeAgo } from "@/components/admin/ui";
 import { MoneyLines } from "@/components/admin/MoneyLines";
 import { getSessionUser } from "@/lib/auth/session";
 import { canAccess, canWrite } from "@/lib/auth/roles";
@@ -170,30 +171,44 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`${greeting}, ${firstName}`}
-        description={`${today}. ${attention.length ? `${attention.length} ${attention.length === 1 ? "item needs" : "items need"} attention.` : "Nothing is waiting on you right now."}`}
-        actions={
-          <>
-            {canWrite(me.role, "shipments") ? <ButtonLink href="/admin/shipments/new">New shipment</ButtonLink> : null}
-            {can("inquiries") ? (
-              <ButtonLink href="/admin/inquiries?status=new" variant="secondary">
-                Review new enquiries
-              </ButtonLink>
+      <section className="relative overflow-hidden rounded-[1.75rem] bg-[var(--navy)] px-6 py-7 text-white shadow-[0_28px_60px_-36px_rgba(11,31,58,0.85)] sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[var(--accent)]/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-64 rounded-full bg-[var(--accent)]/10 blur-2xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">{today} · Accra</p>
+            <h1 className="mt-3 font-editorial text-4xl leading-none tracking-tight sm:text-5xl">
+              {greeting}, <span className="italic text-[#b8f3ec]">{firstName}</span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
+              {attention.length
+                ? `${attention.length} ${attention.length === 1 ? "item needs" : "items need"} a decision before the day moves on.`
+                : "The desk is clear. Nothing is waiting on you right now."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {canWrite(me.role, "shipments") ? (
+              <Link href="/admin/shipments/new" className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-5 text-sm font-semibold text-[var(--navy)] hover:bg-white">
+                New shipment
+              </Link>
             ) : null}
-          </>
-        }
-      />
+            {can("inquiries") ? (
+              <Link href="/admin/inquiries?status=new" className="inline-flex min-h-11 items-center rounded-full border border-white/25 px-5 text-sm font-semibold text-white hover:bg-white/10">
+                Review new enquiries
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </section>
 
       {isEmpty ? <GettingStarted isAdmin={me.role === "admin"} canShip={canWrite(me.role, "shipments")} /> : null}
 
-      {/* Headline numbers */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {can("shipments") ? (
-          <StatCard label="Active shipments" value={activeShipments} hint={`${shipments.in_transit || 0} in transit · ${shipments.clearing || 0} clearing`} icon={Truck} href="/admin/shipments" />
+          <DashStat label="Active shipments" value={activeShipments} hint={`${shipments.in_transit || 0} in transit · ${shipments.clearing || 0} clearing`} icon={Truck} href="/admin/shipments" />
         ) : null}
         {can("inquiries") ? (
-          <StatCard
+          <DashStat
             label="Enquiries to answer"
             value={toAnswer}
             hint={`${enquiries.new || 0} new · ${enquiries.contacted || 0} contacted`}
@@ -204,8 +219,8 @@ export default async function AdminDashboard() {
         ) : null}
         {showFinance ? (
           <>
-            <StatCard label="Payments received" value={<MoneyLines totals={pick("received")} />} hint="All time, by currency" icon={CircleDollarSign} href="/admin/finance" tone="good" />
-            <StatCard
+            <DashStat label="Payments received" value={<MoneyLines totals={pick("received")} />} hint="All time, by currency" icon={CircleDollarSign} href="/admin/finance" tone="good" />
+            <DashStat
               label="Outstanding"
               value={<MoneyLines totals={pick("outstanding")} />}
               hint={overdueTotals.length ? `${formatTotals(overdueTotals)} overdue` : "Nothing overdue"}
@@ -215,7 +230,7 @@ export default async function AdminDashboard() {
             />
           </>
         ) : (
-          <StatCard label="Clients" value={clientCount} hint="Companies on record" icon={Users} href={can("clients") ? "/admin/clients" : undefined} />
+          <DashStat label="Clients" value={clientCount} hint="Companies on record" icon={Users} href={can("clients") ? "/admin/clients" : undefined} />
         )}
       </div>
 
@@ -257,20 +272,27 @@ export default async function AdminDashboard() {
 
       {/* Shipment pipeline */}
       {can("shipments") ? (
-        <Card>
+        <Card className="overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f4f8f8_100%)] shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
           <CardHeader title="Shipments by stage" description="Where every shipment is right now. Select a stage to see its shipments." action={<CardLink href="/admin/shipments">All shipments</CardLink>} />
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+          <ol className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
             {SHIPMENT_STAGES.map((stage, i) => {
               const count = shipments[stage] || 0;
+              const live = count > 0;
               return (
                 <li key={stage}>
                   <Link
                     href={`/admin/shipments?status=${stage}`}
-                    className="block h-full rounded-xl border border-slate-200 px-3.5 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                    className={cx(
+                      "group relative block h-full overflow-hidden rounded-2xl border px-3.5 py-4 transition-transform duration-150 hover:-translate-y-0.5",
+                      live
+                        ? "border-[var(--accent)]/40 bg-white shadow-[0_16px_30px_-22px_rgba(46,196,182,0.9)]"
+                        : "border-slate-200/80 bg-white/70",
+                    )}
                   >
-                    <span className="text-xs tabular-nums text-slate-400">0{i + 1}</span>
-                    <span className={cx("mt-1 block text-2xl font-medium tabular-nums tracking-[-0.02em]", count ? "text-[var(--navy)]" : "text-slate-300")}>{count}</span>
-                    <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">{statusLabel(stage)}</span>
+                    <span className={cx("absolute inset-x-0 top-0 h-1", live ? "bg-[var(--accent)]" : "bg-slate-200")} />
+                    <span className="font-editorial text-sm italic text-[var(--accent-hover)]">{String(i + 1).padStart(2, "0")}</span>
+                    <span className={cx("mt-2 block font-editorial text-4xl leading-none tabular-nums", live ? "text-[var(--navy)]" : "text-slate-300")}>{count}</span>
+                    <span className="mt-2 block text-[13px] leading-5 text-slate-500 group-hover:text-[var(--navy)]">{statusLabel(stage)}</span>
                   </Link>
                 </li>
               );
@@ -282,7 +304,7 @@ export default async function AdminDashboard() {
       {/* Recent work */}
       <div className="grid gap-6 lg:grid-cols-2">
         {can("inquiries") ? (
-          <Card padded={false}>
+          <Card padded={false} className="shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
             <CardHeader className="mb-0 px-5 pt-5 sm:px-6" title="Latest enquiries" action={<CardLink href="/admin/inquiries">All enquiries</CardLink>} />
             {recentEnquiries.length ? (
               <ul className="mt-3">
@@ -311,7 +333,7 @@ export default async function AdminDashboard() {
         ) : null}
 
         {can("shipments") ? (
-          <Card padded={false}>
+          <Card padded={false} className="shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]">
             <CardHeader className="mb-0 px-5 pt-5 sm:px-6" title="Latest shipments" action={<CardLink href="/admin/shipments">All shipments</CardLink>} />
             {recentShipments.length ? (
               <ul className="mt-3">
@@ -399,6 +421,50 @@ export default async function AdminDashboard() {
 }
 
 /** First-run guide shown while the dashboard has no records at all. */
+function DashStat({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  href,
+  tone = "default",
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  icon: typeof Truck;
+  href?: string;
+  tone?: "default" | "good" | "warn" | "bad";
+}) {
+  const accent = {
+    default: "bg-[var(--accent)] text-[var(--navy)]",
+    good: "bg-emerald-100 text-emerald-800",
+    warn: "bg-amber-100 text-amber-800",
+    bad: "bg-red-100 text-red-800",
+  }[tone];
+  const bar = { default: "bg-[var(--accent)]", good: "bg-emerald-500", warn: "bg-amber-500", bad: "bg-red-500" }[tone];
+  const body = (
+    <>
+      <span className={cx("absolute inset-x-0 top-0 h-1", bar)} />
+      <span className={cx("inline-flex h-10 w-10 items-center justify-center rounded-2xl", accent)}>
+        <Icon size={18} strokeWidth={1.8} />
+      </span>
+      <p className="mt-4 text-[13px] font-medium text-slate-500">{label}</p>
+      <p className="mt-1 font-editorial text-3xl leading-none tracking-tight text-[var(--navy)]">{value}</p>
+      {hint ? <p className="mt-2 text-[13px] leading-5 text-slate-500">{hint}</p> : null}
+    </>
+  );
+  const cls =
+    "relative block overflow-hidden rounded-2xl bg-white p-5 shadow-[0_18px_40px_-28px_rgba(11,31,58,0.55)] ring-1 ring-[var(--navy)]/8 transition-transform duration-150 hover:-translate-y-0.5";
+  return href ? (
+    <Link href={href} className={cls}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+}
+
 function GettingStarted({ isAdmin, canShip }: { isAdmin: boolean; canShip: boolean }) {
   const steps = [
     { title: "Add your first client", body: "Shipments and invoices are always tied to a client company.", href: "/admin/clients/new", cta: "Add a client", show: true },
@@ -407,20 +473,26 @@ function GettingStarted({ isAdmin, canShip }: { isAdmin: boolean; canShip: boole
     { title: "Check company details", body: "Confirm the name, address and contact details staff will see.", href: "/admin/settings", cta: "Open settings", show: isAdmin },
   ].filter((s) => s.show);
   return (
-    <Card>
-      <CardHeader title="Get set up" description="The dashboard is empty. These steps get it ready for real work." />
+    <section>
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">First file</p>
+          <h2 className="mt-1 font-editorial text-3xl text-[var(--navy)]">Get the desk ready</h2>
+        </div>
+        <p className="hidden max-w-sm text-right text-sm text-slate-500 sm:block">Four steps. After the first client, the rest of the dashboard starts filling itself.</p>
+      </div>
       <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {steps.map((s, i) => (
-          <li key={s.href} className="flex flex-col rounded-xl border border-slate-200 p-4">
-            <span className="text-xs tabular-nums text-slate-400">Step {i + 1}</span>
-            <span className="mt-1 text-[15px] font-medium text-[var(--navy)]">{s.title}</span>
+          <li key={s.href} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-[0_18px_40px_-30px_rgba(11,31,58,0.5)] ring-1 ring-[var(--navy)]/8">
+            <span className="font-editorial text-5xl leading-none text-[var(--accent)]/70">{String(i + 1).padStart(2, "0")}</span>
+            <span className="mt-4 text-[15px] font-semibold text-[var(--navy)]">{s.title}</span>
             <span className="mt-1 flex-1 text-[13px] leading-5 text-slate-500">{s.body}</span>
-            <ButtonLink href={s.href} variant="secondary" size="sm" className="mt-4 self-start">
+            <ButtonLink href={s.href} size="sm" className="mt-5 self-start !rounded-full">
               {s.cta}
             </ButtonLink>
           </li>
         ))}
       </ol>
-    </Card>
+    </section>
   );
 }
