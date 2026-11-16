@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users } from "lucide-react";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { query } from "@/lib/db/pool";
-import { ButtonLink, Callout, Card, Field, FormActions, Input, PageHeader, Select } from "@/components/admin/ui";
+import { ButtonLink, Card, EmptyGate, Field, FormActions, Input, PageHeader, Select } from "@/components/admin/ui";
 import { ActionForm, SubmitButton } from "@/components/admin/ui-client";
 import { DbOffline } from "@/components/admin/shipments/parts";
 import { createShipment } from "../actions";
@@ -39,20 +38,20 @@ export default async function NewShipmentPage({ searchParams }: { searchParams: 
   const preselected = clients.find((c) => c.id === params.client)?.id || "";
 
   return (
-    <div className="max-w-2xl">
+    <div>
       {header}
 
       {clients.length === 0 ? (
-        <Callout
-          tone="warning"
-          icon={Users}
-          title="Add a client first"
+        <EmptyGate
+          kicker="Before a job"
+          title="Add a client"
+          accent="first"
           action={<ButtonLink href="/admin/clients/new">Add a client</ButtonLink>}
         >
           Every shipment belongs to a client, and there are none yet. Add the client, then come back to create the shipment.
-        </Callout>
+        </EmptyGate>
       ) : (
-        <Card>
+        <Card className="max-w-3xl">
           <ActionForm action={handleCreate} success="Shipment created" error="The shipment could not be created. Check the details and try again.">
             <div className="grid gap-5 sm:grid-cols-2">
               <Field

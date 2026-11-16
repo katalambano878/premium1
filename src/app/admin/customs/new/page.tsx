@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { Ship } from "lucide-react";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { query } from "@/lib/db/pool";
-import { ButtonLink, Callout, Card, Field, FormActions, Input, PageHeader, Select, Textarea } from "@/components/admin/ui";
+import { ButtonLink, Card, EmptyGate, Field, FormActions, Input, PageHeader, Select, Textarea } from "@/components/admin/ui";
 import { ActionForm, SubmitButton } from "@/components/admin/ui-client";
 import { DbOffline } from "@/components/admin/shipments/parts";
 import { createDeclaration } from "../actions";
@@ -38,20 +37,21 @@ export default async function NewDeclarationPage({ searchParams }: { searchParam
   const preselected = shipments.find((s) => s.id === params.shipment)?.id || "";
 
   return (
-    <div className="max-w-2xl">
+    <div>
       {header}
 
       {shipments.length === 0 ? (
-        <Callout
-          tone="warning"
-          icon={Ship}
-          title="Create a shipment first"
+        <EmptyGate
+          kicker="Before a declaration"
+          title="Create a shipment"
+          accent="first"
+          step="02"
           action={<ButtonLink href="/admin/shipments/new">New shipment</ButtonLink>}
         >
           A declaration is always for a shipment, and there are none yet. Create the shipment, then come back to declare it.
-        </Callout>
+        </EmptyGate>
       ) : (
-        <Card>
+        <Card className="max-w-3xl">
           <ActionForm action={handleCreate} success="Declaration created" error="The declaration could not be created. Check the details and try again.">
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Shipment" htmlFor="shipment_id" required className="sm:col-span-2">

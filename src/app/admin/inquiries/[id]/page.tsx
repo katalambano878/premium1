@@ -210,11 +210,11 @@ export default async function InquiryDetailPage({ params }: { params: Promise<{ 
         }
         actions={
           <>
-            <label className="flex items-center gap-2 text-[13px] text-slate-500">
+            <label className="flex items-center gap-2 text-[13px]">
               Status
               <StatusSelect currentStatus={inquiry.status} statuses={INQUIRY_STATUSES} action={updateInquiryStatus} entityId={id} />
             </label>
-            <label className="flex items-center gap-2 text-[13px] text-slate-500">
+            <label className="flex items-center gap-2 text-[13px]">
               Assigned to
               <AssignSelect currentAssignee={inquiry.assigned_to} staff={staff} action={assignInquiry} entityId={id} />
             </label>

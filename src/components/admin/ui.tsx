@@ -14,9 +14,9 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md";
 
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium whitespace-nowrap transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ink)]";
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ink)]";
 const BUTTON_VARIANT: Record<ButtonVariant, string> = {
-  primary: "bg-[var(--navy)] text-white hover:bg-[#16335c]",
+  primary: "bg-[var(--accent)] text-[var(--navy)] hover:bg-[#5ed9cd]",
   secondary: "border border-slate-300 bg-white text-[var(--navy)] hover:border-slate-400 hover:bg-slate-50",
   ghost: "text-slate-600 hover:bg-slate-100 hover:text-[var(--navy)]",
   danger: "border border-red-200 bg-white text-red-700 hover:border-red-300 hover:bg-red-50",
@@ -57,42 +57,29 @@ export function ButtonLink({
 
 export function PageHeader({
   title,
+  accent,
+  eyebrow,
   description,
   back,
   actions,
   badge,
 }: {
   title: React.ReactNode;
+  accent?: React.ReactNode;
+  eyebrow?: React.ReactNode;
   description?: React.ReactNode;
   back?: { href: string; label: string };
   actions?: React.ReactNode;
   badge?: React.ReactNode;
 }) {
   return (
-    <header className="mb-6">
-      {back ? (
-        <Link
-          href={back.href}
-          className="mb-3 inline-flex min-h-9 items-center gap-1.5 rounded-lg pr-2 text-sm text-slate-500 transition-colors hover:text-[var(--navy)]"
-        >
-          <ArrowLeft size={16} /> {back.label}
-        </Link>
-      ) : null}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-medium tracking-[-0.02em] text-[var(--navy)] sm:text-[1.75rem]">{title}</h1>
-            {badge}
-          </div>
-          {description ? <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{description}</p> : null}
-        </div>
-        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
-      </div>
-    </header>
+    <div className="mb-6">
+      <DeskBanner eyebrow={eyebrow} title={title} accent={accent} description={description} actions={actions} back={back} badge={badge} />
+    </div>
   );
 }
 
-/** Navy greeting band used on the desk pages that need more presence than a plain title. */
+/** Navy greeting band used across the operations desk. */
 export function DeskBanner({
   eyebrow,
   title,
@@ -100,6 +87,7 @@ export function DeskBanner({
   description,
   actions,
   back,
+  badge,
 }: {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
@@ -107,6 +95,7 @@ export function DeskBanner({
   description?: React.ReactNode;
   actions?: React.ReactNode;
   back?: { href: string; label: string };
+  badge?: React.ReactNode;
 }) {
   return (
     <section className="relative overflow-hidden rounded-[1.75rem] bg-[var(--navy)] px-6 py-7 text-white shadow-[0_28px_60px_-36px_rgba(11,31,58,0.85)] sm:px-8 sm:py-8">
@@ -121,13 +110,20 @@ export function DeskBanner({
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">{eyebrow}</p> : null}
-            <h1 className="mt-3 font-editorial text-4xl leading-none tracking-tight sm:text-5xl">
-              {title}
-              {accent ? <span className="italic text-[#b8f3ec]"> {accent}</span> : null}
-            </h1>
-            {description ? <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">{description}</p> : null}
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h1 className="font-editorial text-4xl leading-none tracking-tight break-words sm:text-5xl">
+                {title}
+                {accent ? <span className="italic text-[#b8f3ec]"> {accent}</span> : null}
+              </h1>
+              {badge}
+            </div>
+            {description ? (
+              <div className="mt-3 max-w-2xl text-sm leading-6 text-white/70 [&_a]:font-medium [&_a]:text-[#b8f3ec] [&_a]:underline-offset-4 hover:[&_a]:underline">
+                {description}
+              </div>
+            ) : null}
           </div>
-          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2 text-[13px] text-white/75">{actions}</div> : null}
         </div>
       </div>
     </section>
@@ -149,7 +145,11 @@ export function Card({
   padded?: boolean;
   as?: "section" | "div" | "aside";
 }) {
-  return <Tag className={cx("rounded-2xl border border-slate-200 bg-white", padded && "p-5 sm:p-6", className)}>{children}</Tag>;
+  return (
+    <Tag className={cx("rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]", padded && "p-5 sm:p-6", className)}>
+      {children}
+    </Tag>
+  );
 }
 
 export function CardHeader({
@@ -166,7 +166,7 @@ export function CardHeader({
   return (
     <div className={cx("mb-4 flex items-start justify-between gap-4", className)}>
       <div className="min-w-0">
-        <h2 className="text-base font-medium text-[var(--navy)]">{title}</h2>
+        <h2 className="font-editorial text-2xl text-[var(--navy)]">{title}</h2>
         {description ? <p className="mt-0.5 text-sm leading-6 text-slate-500">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -344,8 +344,19 @@ export function EmptyState({
   action?: React.ReactNode;
   compact?: boolean;
 }) {
+  if (!compact) {
+    return (
+      <div className="relative overflow-hidden px-6 py-8 sm:px-8 sm:py-10">
+        <span className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]" />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">Nothing here yet</p>
+        <h3 className="mt-3 max-w-xl font-editorial text-4xl leading-none text-[var(--navy)]">{title}</h3>
+        {description ? <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">{description}</p> : null}
+        {action ? <div className="mt-6 flex flex-wrap gap-2">{action}</div> : null}
+      </div>
+    );
+  }
   return (
-    <div className={cx("flex flex-col items-center text-center", compact ? "px-4 py-8" : "px-6 py-14")}>
+    <div className="flex flex-col items-center px-4 py-8 text-center">
       <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500">
         <Icon size={20} strokeWidth={1.6} />
       </span>
@@ -353,6 +364,42 @@ export function EmptyState({
       {description ? <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">{description}</p> : null}
       {action ? <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div> : null}
     </div>
+  );
+}
+
+/** Full-width prompt when a page cannot start until another record exists. */
+export function EmptyGate({
+  kicker,
+  title,
+  accent,
+  children,
+  action,
+  step = "01",
+}: {
+  kicker: string;
+  title: string;
+  accent?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  step?: string;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[1.75rem] bg-white p-6 shadow-[0_18px_40px_-30px_rgba(11,31,58,0.5)] ring-1 ring-[var(--navy)]/8 sm:p-8">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-hover)]">{kicker}</p>
+      <div className="mt-3 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xl">
+          <h2 className="font-editorial text-4xl leading-none text-[var(--navy)]">
+            {title}
+            {accent ? <span className="italic text-[var(--accent-hover)]"> {accent}</span> : null}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-500">{children}</p>
+        </div>
+        {action}
+      </div>
+      <p className="pointer-events-none mt-8 font-editorial text-7xl leading-none text-[var(--accent)]/40" aria-hidden>
+        {step}
+      </p>
+    </section>
   );
 }
 
@@ -407,20 +454,24 @@ export function StatCard({
   href?: string;
   tone?: "default" | "good" | "warn" | "bad";
 }) {
-  const valueColor = { default: "text-[var(--navy)]", good: "text-emerald-700", warn: "text-amber-700", bad: "text-red-700" }[tone];
+  const well = { default: "bg-[var(--accent)] text-[var(--navy)]", good: "bg-emerald-100 text-emerald-800", warn: "bg-amber-100 text-amber-800", bad: "bg-red-100 text-red-800" }[tone];
+  const bar = { default: "bg-[var(--accent)]", good: "bg-emerald-500", warn: "bg-amber-500", bad: "bg-red-500" }[tone];
   const body = (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{label}</p>
-        {Icon ? <Icon size={18} strokeWidth={1.6} className="shrink-0 text-slate-400" /> : null}
-      </div>
-      <p className={cx("mt-2 text-xl font-medium leading-tight tracking-[-0.02em] tabular-nums sm:text-2xl", valueColor)}>{value}</p>
-      {hint ? <p className="mt-1 text-[13px] leading-5 text-slate-500">{hint}</p> : null}
+      <span className={cx("absolute inset-x-0 top-0 h-1", bar)} />
+      {Icon ? (
+        <span className={cx("inline-flex h-10 w-10 items-center justify-center rounded-2xl", well)}>
+          <Icon size={18} strokeWidth={1.8} />
+        </span>
+      ) : null}
+      <p className="mt-4 text-[13px] font-medium text-slate-500">{label}</p>
+      <p className="mt-1 font-editorial text-3xl leading-none tracking-tight text-[var(--navy)]">{value}</p>
+      {hint ? <p className="mt-2 text-[13px] leading-5 text-slate-500">{hint}</p> : null}
     </>
   );
-  const cls = "block rounded-2xl border border-slate-200 bg-white p-5";
+  const cls = "relative block overflow-hidden rounded-2xl bg-white p-5 shadow-[0_18px_40px_-28px_rgba(11,31,58,0.55)] ring-1 ring-[var(--navy)]/8";
   return href ? (
-    <Link href={href} className={cx(cls, "transition-[border-color,box-shadow] duration-150 hover:border-slate-300 hover:shadow-[0_12px_24px_-18px_rgba(11,31,58,0.35)]")}>
+    <Link href={href} className={cx(cls, "transition-transform duration-150 hover:-translate-y-0.5")}>
       {body}
     </Link>
   ) : (
@@ -435,7 +486,7 @@ export function StatCard({
 /** White card that holds a table and scrolls sideways on small screens. */
 export function TableCard({ children, footer, className }: { children: React.ReactNode; footer?: React.ReactNode; className?: string }) {
   return (
-    <div className={cx("overflow-hidden rounded-2xl border border-slate-200 bg-white", className)}>
+    <div className={cx("overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_40px_-32px_rgba(11,31,58,0.45)]", className)}>
       <div className="overflow-x-auto">{children}</div>
       {footer ? <div className="border-t border-slate-200 px-5 py-3 text-sm text-slate-500">{footer}</div> : null}
     </div>

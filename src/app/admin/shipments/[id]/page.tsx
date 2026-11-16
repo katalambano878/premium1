@@ -186,11 +186,11 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
         back={{ href: "/admin/shipments", label: "Shipments" }}
         actions={
           <>
-            <div className="flex items-center gap-2 text-[13px] text-slate-500">
+            <div className="flex items-center gap-2 text-[13px]">
               <span aria-hidden>Status</span>
               <StatusSelect currentStatus={shipment.status} statuses={SHIPMENT_STAGES} action={updateShipmentStatus} entityId={id} />
             </div>
-            <div className="flex items-center gap-2 text-[13px] text-slate-500">
+            <div className="flex items-center gap-2 text-[13px]">
               <span aria-hidden>Assigned to</span>
               <AssignSelect currentAssignee={shipment.assigned_to} staff={staff} action={assignShipment} entityId={id} />
             </div>

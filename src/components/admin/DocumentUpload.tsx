@@ -3,10 +3,10 @@
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, FileText, Loader2, Ship, Upload, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Loader2, Upload, X } from "lucide-react";
 import { MAX_UPLOAD_BYTES, checkUpload } from "@/lib/uploads";
 import { Dialog } from "./ui-client";
-import { ButtonLink, Callout, Field, Select, buttonClass, cx } from "./ui";
+import { ButtonLink, Field, Select, buttonClass, cx } from "./ui";
 import { DOC_TYPES } from "./documents/doc-types";
 
 type Item = {
@@ -146,14 +146,13 @@ export function DocumentUpload({
         wide
       >
         {shipments.length === 0 ? (
-          <Callout
-            tone="warning"
-            icon={Ship}
-            title="Create a shipment first"
-            action={<ButtonLink href="/admin/shipments/new">New shipment</ButtonLink>}
-          >
-            Documents are filed under a shipment, and there are none yet.
-          </Callout>
+          <div className="rounded-2xl bg-[#f4f8f8] p-5">
+            <p className="font-editorial text-3xl text-[var(--navy)]">Create a shipment first</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Documents are filed under a shipment, and there are none yet.</p>
+            <ButtonLink href="/admin/shipments/new" className="mt-4">
+              New shipment
+            </ButtonLink>
+          </div>
         ) : (
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
